@@ -1,118 +1,56 @@
 // 1. Data Store / Config Matrix Definition
-// Add to top of script.js
-
 const MUTATIONS = {
-    NONE: { id: "none", chance: 0.7495, name: "", color: "transparent" },
-    GOLD: { id: "gold", chance: 0.20, name: "Gold", color: "gold" },
-    DIAMOND: { id: "diamond", chance: 0.05, name: "Diamond", color: "cyan" },
-    RAINBOW: { id: "rainbow", chance: 0.0004, name: "Rainbow", color: "linear-gradient(90deg, red, orange, yellow, green, blue, indigo, violet)" },
-    VOID: { id: "void", chance: 0.0001, name: "Void", color: "black" }
+    // Exact probabilities calculated to sum to 100%. (0.749499 represents ~74.95%)
+    NONE: { id: "none", chance: 0.749499, name: "", multiplier: 1, color: "transparent" },
+    GOLD: { id: "gold", chance: 0.20, name: "Gold", multiplier: 2, color: "gold" },
+    DIAMOND: { id: "diamond", chance: 0.05, name: "Diamond", multiplier: 5, color: "cyan" },
+    RAINBOW: { id: "rainbow", chance: 0.0005, name: "Rainbow", multiplier: 20, color: "linear-gradient(90deg, red, orange, yellow, green, blue, indigo, violet)" },
+    VOID: { id: "void", chance: 0.000001, name: "Void", multiplier: 100, color: "black" }
 };
 
-// Add this to your script.js
 const Game = {
     rebirth() {
         if (!confirm("Are you sure you want to Rebirth? This will reset your coins, inventory, and upgrades!")) return;
-
-        // 1. Reset Player Object
         Player.coins = 0;
         Player.inventory = {};
         Player.upgrades = { quickRoll: 0, doubleRoll: 0, luck: 0, autoRoll: 0 };
-        
-        // 2. Explicitly stop Auto-Roll
         Player.autoRollActive = false;
         autoBtn.innerText = "AUTO: OFF";
         autoBtn.classList.remove("active-mode");
-        
-        // 3. Update UI
         document.getElementById("coin-balance").innerText = "0";
         document.getElementById("auto-roll-btn").classList.add("hidden-upgrade");
-        
-        // 4. Reset Viewports and Refresh Menus
         syncRouletteViewports();
         Menu.updateInventory();
         Menu.updateIndex();
         Shop.renderTrackers();
-        
-        // 5. Force Save the cleared state
         Storage.save();
-        location.reload(); // Optional: Refresh to ensure no stale memory remains
+        location.reload(); 
     }
 };
 
-// Update getRandomRotund
-function getRandomRotund() {
-    // 1. Get Base Rotund
-    const { table, totalWeight } = calculateWeightsMatrix();
-    let rand = Math.random() * totalWeight;
-    let base = ROTUNDS[0];
-    for (const entry of table) {
-        if (rand < entry.calcWeight) { base = entry; break; }
-        rand -= entry.calcWeight;
-    }
-
-    // 2. Roll for Mutation
-    let mRand = Math.random();
-    let mutation = "none";
-    let cumulative = 0;
-    for (const key in MUTATIONS) {
-        cumulative += MUTATIONS[key].chance;
-        if (mRand < cumulative) {
-            mutation = key.toLowerCase();
-            break;
-        }
-    }
-    return { ...base, mutation };
-}
-
-// In finalizeSpin/Process, save items with mutation keys:
-// Player.inventory[winner.id + "-" + winner.mutation] = ...
-
-// Update Index to support sorting by mutation
-function sortIndex(criteria) {
-    // Re-render based on selected sort
-    // e.g., sort by rarity vs sort by mutation
-}
-
 const ROTUNDS = [
-    // COMMON
     { id: "r1", name: "Rotund", file: "rotund.png", rarity: "COMMON", weight: 70, value: 10 },
     { id: "r2", name: "Silly Rotund", file: "sillyrotund.png", rarity: "COMMON", weight: 70, value: 10 },
-    
-    // UNCOMMON
     { id: "r3", name: "Blue Rotund", file: "bluerotund.png", rarity: "UNCOMMON", weight: 50, value: 25 },
     { id: "r4", name: "Pink Rotund", file: "pinkrotund.png", rarity: "UNCOMMON", weight: 50, value: 25 },
     { id: "r5", name: "Green Rotund", file: "greenrotund.png", rarity: "UNCOMMON", weight: 50, value: 25 },
     { id: "r6", name: "Yellow Rotund", file: "yellowrotund.png", rarity: "UNCOMMON", weight: 50, value: 25 },
     { id: "r8", name: "Red Rotund", file: "redrotund.png", rarity: "UNCOMMON", weight: 50, value: 25 },
-    
-    // RARE
     { id: "r7", name: "Gold Rotund", file: "goldrotund.png", rarity: "RARE", weight: 25, value: 75 },
     { id: "r18", name: "Italian Rotund", file: "italianrotund.png", rarity: "RARE", weight: 25, value: 75 },
     { id: "r19", name: "Nerd Rotund", file: "nerdrotund.png", rarity: "RARE", weight: 25, value: 75 },
-    
-    // EPIC
     { id: "r9", name: "Rainbow Rotund", file: "rainbowrotund.png", rarity: "EPIC", weight: 10, value: 200 },
     { id: "r10", name: "Minecraft Rotund", file: "minecraftrotund.png", rarity: "EPIC", weight: 10, value: 200 },
-    
-    // LEGENDARY
     { id: "r16", name: "Devil Rotund", file: "devilrotund.png", rarity: "LEGENDARY", weight: 0.5, value: 1500 },
     { id: "r13", name: "Vulkan Rotund", file: "vulkanrotund.png", rarity: "LEGENDARY", weight: 1, value: 1000 },
     { id: "r12", name: "Matrix Rotund", file: "matrixrotund.png", rarity: "LEGENDARY", weight: 2, value: 750 },
     { id: "r17", name: "Cool Rotund", file: "coolrotund.png", rarity: "LEGENDARY", weight: 3, value: 600 },
-    
-    // MYTHIC
     { id: "r14", name: "Galaxy Rotund", file: "galaxyrotund.png", rarity: "MYTHIC", weight: 0.25, value: 5000 },
-    
-    // SECRET
     { id: "r15", name: "Dapper Rotund", file: "dapperrotund.png", rarity: "SECRET", weight: 0.01, value: 75000 },
     { id: "r11", name: "32 Bit Rotund", file: "32bitrotund.png", rarity: "SECRET", weight: 0.05, value: 25000 },
-
-    // ANGELIC
     { id: "r20", name: "Rebirth Rotund", file: "rebirthrotund.png", rarity: "ANGELIC", weight: 0.0005, value: 5000000 }
 ];
 
-// Progressive Purchase Configurations 
 const UPGRADE_DATA = {
     quickRoll: { max: 4, baseCost: 300, multiplier: 2.5 },
     doubleRoll: { max: 3, baseCost: 1000, multiplier: 3.5 },
@@ -123,8 +61,8 @@ const UPGRADE_DATA = {
 let Player = {
     coins: 0,
     rebirths: 0,
-    inventory: {},
-    lifetimeStats: {}, // Preserved roll telemetry logs through Rebirths
+    inventory: {}, // Format is now: "r1-gold": 1
+    lifetimeStats: {},
     upgrades: { quickRoll: 0, doubleRoll: 0, luck: 0, autoRoll: 0 },
     autoRollActive: false
 };
@@ -133,15 +71,12 @@ let isSpinning = false;
 let animationFrameId = null; 
 let awayStartTime = null; 
 
-// LocalStorage Engine Wrapper
 const Storage = {
-    saveKey: "RotundRoulette_SaveState_v4",
+    saveKey: "RotundRoulette_SaveState_v5",
     save() {
         const payload = {
-            coins: Player.coins,
-            rebirths: Player.rebirths,
-            inventory: Player.inventory,
-            lifetimeStats: Player.lifetimeStats,
+            coins: Player.coins, rebirths: Player.rebirths,
+            inventory: Player.inventory, lifetimeStats: Player.lifetimeStats,
             upgrades: Player.upgrades
         };
         localStorage.setItem(this.saveKey, JSON.stringify(payload));
@@ -153,7 +88,15 @@ const Storage = {
             const parsed = JSON.parse(raw);
             if (typeof parsed.coins === "number") Player.coins = parsed.coins;
             if (typeof parsed.rebirths === "number") Player.rebirths = parsed.rebirths;
-            if (parsed.inventory) Player.inventory = parsed.inventory;
+            if (parsed.inventory) {
+                // Migration catch for old pre-mutation saves
+                const migratedInv = {};
+                Object.keys(parsed.inventory).forEach(k => {
+                    if(!k.includes("-")) migratedInv[`${k}-none`] = parsed.inventory[k];
+                    else migratedInv[k] = parsed.inventory[k];
+                });
+                Player.inventory = migratedInv;
+            }
             if (parsed.lifetimeStats) Player.lifetimeStats = parsed.lifetimeStats;
             if (parsed.upgrades) Player.upgrades = { ...Player.upgrades, ...parsed.upgrades };
         } catch (e) {
@@ -162,7 +105,6 @@ const Storage = {
     }
 };
 
-// Procedural Non-Asset Synthesizer Audio Engine
 const AudioFX = {
     ctx: null,
     init() { if (!this.ctx) this.ctx = new (window.AudioContext || window.webkitAudioContext)(); },
@@ -190,8 +132,7 @@ const AudioFX = {
             return;
         }
         let notes = ["LEGENDARY", "MYTHIC"].includes(rarity) 
-            ? [261.63, 329.63, 392.00, 523.25, 659.25, 783.99, 1046.50] 
-            : [392.00, 523.25];
+            ? [261.63, 329.63, 392.00, 523.25, 659.25, 783.99, 1046.50] : [392.00, 523.25];
         notes.forEach((freq, idx) => {
             let osc = this.ctx.createOscillator(), gain = this.ctx.createGain();
             if (rarity === "MYTHIC") osc.type = "triangle";
@@ -232,11 +173,24 @@ function calculateWeightsMatrix() {
 function getRandomRotund() {
     const { table, totalWeight } = calculateWeightsMatrix();
     let rand = Math.random() * totalWeight;
+    let base = ROTUNDS[0];
     for (const entry of table) {
-        if (rand < entry.calcWeight) return entry;
+        if (rand < entry.calcWeight) { base = entry; break; }
         rand -= entry.calcWeight;
     }
-    return ROTUNDS[0];
+
+    // Roll for Mutation Overlay
+    let mRand = Math.random();
+    let mutationStr = "none";
+    let cumulative = 0;
+    for (const key in MUTATIONS) {
+        cumulative += MUTATIONS[key].chance;
+        if (mRand < cumulative) {
+            mutationStr = key.toLowerCase();
+            break;
+        }
+    }
+    return { ...base, mutation: mutationStr };
 }
 
 // 3. Main Rolling UI Generator Matrix
@@ -274,13 +228,14 @@ function buildIndividualTrack(trackNode, winningItem) {
     trackNode.innerHTML = "";
     const sequence = [];
     for (let i = 0; i < 42; i++) {
-        sequence.push(i === TARGET_INDEX ? winningItem : ROTUNDS[Math.floor(Math.random() * ROTUNDS.length)]);
+        sequence.push(i === TARGET_INDEX ? winningItem : getRandomRotund()); // Random filler objects
     }
     sequence.forEach(item => {
         const node = document.createElement("div");
+        const mutClass = item.mutation !== 'none' ? `mutation-${item.mutation}` : '';
         node.className = `ticker-item glow-${item.rarity.toLowerCase()}`;
         node.innerHTML = `
-            <img src="images/${item.file}" onerror="this.src='data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'32\' height=\'32\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'%23333\' stroke-width=\'2\'><circle cx=\'12\' cy=\'12\' r=\'10\'/></svg>'">
+            <img class="${mutClass}" src="images/${item.file}" onerror="this.src='data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'32\' height=\'32\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'%23333\' stroke-width=\'2\'><circle cx=\'12\' cy=\'12\' r=\'10\'/></svg>'">
             <span style="color: var(--${item.rarity.toLowerCase()})">${item.name}</span>
         `;
         trackNode.appendChild(node);
@@ -297,7 +252,6 @@ function spin() {
     const winners = [];
     const trackElements = [];
     const targetTranslations = [];
-
     const viewports = stackContainer.querySelectorAll(".roulette-viewport");
     const viewportWidth = stackContainer.clientWidth;
 
@@ -370,19 +324,24 @@ function finalizeSpin(winners) {
     const multiplier = 1 + Player.rebirths;
 
     winners.forEach(winner => {
-        // Increment inventory and lifetime stat values
-        Player.inventory[winner.id] = (Player.inventory[winner.id] || 0) + 1;
-        Player.lifetimeStats[winner.id] = (Player.lifetimeStats[winner.id] || 0) + 1;
-
-        const scaledValue = winner.value * multiplier;
+        const mutMultiplier = MUTATIONS[winner.mutation.toUpperCase()].multiplier;
+        const scaledValue = winner.value * multiplier * mutMultiplier;
+        
+        const invKey = `${winner.id}-${winner.mutation}`;
+        Player.inventory[invKey] = (Player.inventory[invKey] || 0) + 1;
+        Player.lifetimeStats[invKey] = (Player.lifetimeStats[invKey] || 0) + 1;
         Player.coins += scaledValue;
 
         const card = document.createElement("div");
         card.className = `result-card glow-${winner.rarity.toLowerCase()}`;
+        
+        const mutClass = winner.mutation !== 'none' ? `mutation-${winner.mutation}` : '';
+        const mutNamePrefix = winner.mutation !== 'none' ? `${MUTATIONS[winner.mutation.toUpperCase()].name} ` : '';
+
         card.innerHTML = `
-            <img src="images/${winner.file}" onerror="this.src='data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'64\' height=\'64\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'%23333\' stroke-width=\'1.5\'><circle cx=\'12\' cy=\'12\' r=\'10\'/></svg>'">
+            <img class="${mutClass}" src="images/${winner.file}" onerror="this.src='data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'64\' height=\'64\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'%23333\' stroke-width=\'1.5\'><circle cx=\'12\' cy=\'12\' r=\'10\'/></svg>'">
             <span class="badge" style="background-color: var(--${winner.rarity.toLowerCase()})">${winner.rarity}</span>
-            <h2>${winner.name}</h2>
+            <h2>${mutNamePrefix}${winner.name}</h2>
             <div class="result-coin-row">
                 <span>+${scaledValue.toLocaleString()}</span>
                 <img src="images/rotundcoin.png" class="coin-icon" onerror="this.style.display='none'">
@@ -405,7 +364,6 @@ function finalizeSpin(winners) {
     Shop.checkRebirthAvailability();
     
     Storage.save(); 
-
     isSpinning = false; 
 
     if (Player.autoRollActive) {
@@ -426,11 +384,18 @@ const Cinematics = {
         setTimeout(() => {
             document.body.classList.remove("shake-matrix");
             const stage = document.getElementById("secret-stage");
-            const alertText = secretItem.rarity === "ANGELIC" ? "👼 ANGELIC ACQUISITION 👼" : "🚨 SECRET ACQUISITION 🚨";
+            const alertText = secretItem.rarity === "ANGELIC" ? "✨ ANGELIC ACQUISITION ✨" : "🚨 SECRET ACQUISITION 🚨";
             document.querySelector(".secret-alert").innerText = alertText;
-            document.getElementById("secret-epicenter-img").src = `images/${secretItem.file}`;
-            document.getElementById("secret-epicenter-name").innerText = secretItem.name;
-            document.getElementById("secret-epicenter-name").style.color = `var(--${secretItem.rarity.toLowerCase()})`;
+            
+            const epicImg = document.getElementById("secret-epicenter-img");
+            epicImg.src = `images/${secretItem.file}`;
+            epicImg.className = secretItem.mutation !== 'none' ? `mutation-${secretItem.mutation}` : '';
+
+            const mutNamePrefix = secretItem.mutation !== 'none' ? `${MUTATIONS[secretItem.mutation.toUpperCase()].name} ` : '';
+            const epicName = document.getElementById("secret-epicenter-name");
+            epicName.innerText = `${mutNamePrefix}${secretItem.name}`;
+            epicName.style.color = `var(--${secretItem.rarity.toLowerCase()})`;
+            
             stage.classList.remove("hidden-stage");
         }, 600);
     },
@@ -449,8 +414,6 @@ const Cinematics = {
 
         setTimeout(() => {
             Player.rebirths++;
-            
-            // Hard Wipe Progress States (Preserving Player.lifetimeStats)
             Player.coins = 0;
             Player.inventory = {};
             Object.keys(Player.upgrades).forEach(key => Player.upgrades[key] = 0);
@@ -461,7 +424,6 @@ const Cinematics = {
                 counter.classList.remove("odometer-tick");
                 document.body.classList.remove("shake-matrix");
             }, 300);
-
         }, 1500);
 
         setTimeout(() => {
@@ -481,11 +443,7 @@ const Cinematics = {
                 }
                 
                 Storage.save();
-                
-                if (Player.autoRollActive) {
-                    isSpinning = false;
-                    spin();
-                }
+                if (Player.autoRollActive) { isSpinning = false; spin(); }
             }, 500);
         }, 4000);
     }
@@ -508,57 +466,77 @@ const Menu = {
     updateInventory() {
         const grid = document.getElementById("inventory-grid"); grid.innerHTML = "";
         let empty = true;
-        ROTUNDS.forEach(item => {
-            const count = Player.inventory[item.id] || 0;
+        
+        Object.keys(Player.inventory).forEach(invKey => {
+            const count = Player.inventory[invKey];
             if (count > 0) {
+                const [id, mutStr] = invKey.split("-");
+                const itemDef = ROTUNDS.find(r => r.id === id);
+                if (!itemDef) return;
+
                 empty = false;
+                const mutClass = mutStr !== 'none' ? `mutation-${mutStr}` : '';
+                const mutNamePrefix = mutStr !== 'none' ? `${MUTATIONS[mutStr.toUpperCase()].name} ` : '';
+                const mutBadgeHTML = mutStr !== 'none' ? `<div class="mutation-badge" style="background: ${MUTATIONS[mutStr.toUpperCase()].color};">${mutStr}</div>` : '';
+
                 const card = document.createElement("div");
-                card.className = `inv-card glow-${item.rarity.toLowerCase()}`;
+                card.className = `inv-card glow-${itemDef.rarity.toLowerCase()}`;
                 card.innerHTML = `
                     <span class="inv-qty">x${count}</span>
-                    <img src="images/${item.file}" onerror="this.src='data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'24\' height=\'24\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'%23333\' stroke-width=\'2\'><circle cx=\'12\' cy=\'12\' r=\'10\'/></svg>'">
-                    <div class="inv-name" style="color: var(--${item.rarity.toLowerCase()})">${item.name}</div>
+                    <img class="${mutClass}" src="images/${itemDef.file}" onerror="this.src='data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'24\' height=\'24\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'%23333\' stroke-width=\'2\'><circle cx=\'12\' cy=\'12\' r=\'10\'/></svg>'">
+                    ${mutBadgeHTML}
+                    <div class="inv-name" style="color: var(--${itemDef.rarity.toLowerCase()})">${mutNamePrefix}${itemDef.name}</div>
                 `;
                 grid.appendChild(card);
             }
         });
         if (empty) grid.innerHTML = `<p class="placeholder-card" style="grid-column: span 3; padding: 2rem 0; font-size:0.7rem;">Empty</p>`;
     },
-    updateIndex() {
+    updateIndex(filterMutation = document.getElementById("mutation-filter-select").value) {
         const list = document.getElementById("index-list"); list.innerHTML = "";
         const { table, totalWeight } = calculateWeightsMatrix();
 
         [...table].sort((a,b) => b.calcWeight - a.calcWeight).forEach(item => {
-            const row = document.createElement("div");
-            row.className = `index-row glow-${item.rarity.toLowerCase()}`;
-            row.style.cursor = "pointer";
-            
             const isLuckBoosted = Player.upgrades.luck > 0 && item.rarity !== "COMMON";
-            const percentValue = (item.calcWeight / totalWeight) * 100;
-            const percentText = percentValue.toFixed(4);
-
-            row.innerHTML = `
-                <div class="index-left">
-                    <img src="images/${item.file}" onerror="this.src='data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'20\' height=\'20\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'%23333\' stroke-width=\'2\'><circle cx=\'12\' cy=\'12\' r=\'10\'/></svg>'">
-                    <div>
-                        <div class="index-title">${item.name}</div>
-                        <span style="font-size:0.55rem; font-weight:800; color: var(--${item.rarity.toLowerCase()})">${item.rarity}</span>
-                    </div>
-                </div>
-                <div class="index-pct ${isLuckBoosted ? 'boosteded' : ''}">${percentText}%</div>
-            `;
             
-            // Wireframe row event click mechanics
-            row.addEventListener("click", () => {
-                UIManager.showIndexCardModal(item, percentValue);
-            });
+            // Allow bypassing filters if they select "all". Otherwise strictly filter.
+            let renderMutations = filterMutation === 'all' 
+                ? Object.keys(MUTATIONS).map(k => k.toLowerCase()) 
+                : [filterMutation];
 
-            list.appendChild(row);
+            renderMutations.forEach(mutStr => {
+                const mutData = MUTATIONS[mutStr.toUpperCase()];
+                
+                const baseChance = (item.calcWeight / totalWeight);
+                const complexChanceValue = (baseChance * mutData.chance) * 100;
+                const percentText = complexChanceValue.toFixed(6);
+
+                const mutClass = mutStr !== 'none' ? `mutation-${mutStr}` : '';
+                const mutNamePrefix = mutStr !== 'none' ? `${mutData.name} ` : '';
+
+                const row = document.createElement("div");
+                row.className = `index-row glow-${item.rarity.toLowerCase()}`;
+                row.style.cursor = "pointer";
+                row.innerHTML = `
+                    <div class="index-left">
+                        <img class="${mutClass}" src="images/${item.file}" onerror="this.src='data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'20\' height=\'20\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'%23333\' stroke-width=\'2\'><circle cx=\'12\' cy=\'12\' r=\'10\'/></svg>'">
+                        <div>
+                            <div class="index-title">${mutNamePrefix}${item.name}</div>
+                            <span style="font-size:0.55rem; font-weight:800; color: var(--${item.rarity.toLowerCase()})">${item.rarity}</span>
+                        </div>
+                    </div>
+                    <div class="index-pct ${isLuckBoosted ? 'boosteded' : ''}">${percentText}%</div>
+                `;
+                
+                row.addEventListener("click", () => {
+                    UIManager.showIndexCardModal(item, complexChanceValue, mutStr);
+                });
+                list.appendChild(row);
+            });
         });
     }
 };
 
-// 6. Stage Progression Multi-Tier Shop Purchase Handler
 const Shop = {
     getCost(type, currentTier) {
         const cfg = UPGRADE_DATA[type];
@@ -576,13 +554,11 @@ const Shop = {
         if (allMaxed) {
             section.classList.remove("rebirth-locked");
             section.classList.add("rebirth-available-pulse");
-            btn.disabled = false;
-            btn.innerText = "ASCEND NOW";
+            btn.disabled = false; btn.innerText = "ASCEND NOW";
         } else {
             section.classList.add("rebirth-locked");
             section.classList.remove("rebirth-available-pulse");
-            btn.disabled = true;
-            btn.innerText = "REQUIRES ALL MAX UPGRADES";
+            btn.disabled = true; btn.innerText = "REQUIRES ALL MAX UPGRADES";
         }
     },
     renderTrackers() {
@@ -600,14 +576,11 @@ const Shop = {
 
             const btn = document.getElementById(`buy-${type}`);
             if (current >= max) {
-                btn.innerText = "MAXED";
-                btn.classList.add("unlocked");
-                btn.disabled = true;
+                btn.innerText = "MAXED"; btn.classList.add("unlocked"); btn.disabled = true;
             } else {
                 const cost = this.getCost(type, current);
                 btn.innerHTML = `${cost.toLocaleString()} <img src="images/rotundcoin.png" class="coin-icon" onerror="this.style.display='none'">`;
-                btn.classList.remove("unlocked");
-                btn.disabled = false;
+                btn.classList.remove("unlocked"); btn.disabled = false;
             }
         });
         this.checkRebirthAvailability();
@@ -621,20 +594,11 @@ const Shop = {
         if (Player.coins >= cost) {
             Player.coins -= cost;
             Player.upgrades[type]++;
-            
             syncHUD();
             this.renderTrackers();
-
-            if (type === "doubleRoll") {
-                syncRouletteViewports();
-            }
-            if (type === "luck") {
-                Menu.updateIndex();
-            }
-            if (type === "autoRoll" && Player.upgrades.autoRoll > 0) {
-                autoBtn.classList.remove("hidden-upgrade");
-            }
-            
+            if (type === "doubleRoll") syncRouletteViewports();
+            if (type === "luck") Menu.updateIndex();
+            if (type === "autoRoll" && Player.upgrades.autoRoll > 0) autoBtn.classList.remove("hidden-upgrade");
             Storage.save(); 
         } else {
             alert("Insufficient RotundCoins!");
@@ -642,14 +606,11 @@ const Shop = {
     }
 };
 
-// 7. Dynamic UI Modal Manager (New Logic Block)
 const UIManager = {
     modal: document.getElementById("offline-modal"),
     grid: document.getElementById("offline-item-grid"),
     summary: document.getElementById("offline-summary-text"),
     coins: document.getElementById("offline-coins-gained"),
-
-    // Index Premium Card Modal Bindings
     indexCardModal: document.getElementById("index-card-modal"),
 
     showOfflineModal(rollsMissed, gains) {
@@ -657,76 +618,69 @@ const UIManager = {
         this.summary.innerText = `Your Auto-Roller completed ${rollsMissed.toLocaleString()} sets while you were away.`;
         this.coins.innerText = `+${gains.coins.toLocaleString()}`;
 
-        Object.keys(gains.items).forEach(itemId => {
-            const rotundDef = ROTUNDS.find(r => r.id === itemId);
-            const quantity = gains.items[itemId];
+        Object.keys(gains.items).forEach(invKey => {
+            const [id, mutStr] = invKey.split("-");
+            const rotundDef = ROTUNDS.find(r => r.id === id);
+            const quantity = gains.items[invKey];
 
             if (rotundDef) {
+                const mutClass = mutStr !== 'none' ? `mutation-${mutStr}` : '';
+                const mutNamePrefix = mutStr !== 'none' ? `${MUTATIONS[mutStr.toUpperCase()].name} ` : '';
+                
                 const card = document.createElement("div");
                 card.className = `inv-card glow-${rotundDef.rarity.toLowerCase()}`;
                 card.innerHTML = `
                     <span class="inv-qty">x${quantity.toLocaleString()}</span>
-                    <img src="images/${rotundDef.file}" onerror="this.src='data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'24\' height=\'24\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'%23333\' stroke-width=\'2\'><circle cx=\'12\' cy=\'12\' r=\'10\'/></svg>'">
-                    <div class="inv-name" style="color: var(--${rotundDef.rarity.toLowerCase()})">${rotundDef.name}</div>
+                    <img class="${mutClass}" src="images/${rotundDef.file}" onerror="this.src='data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'24\' height=\'24\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'%23333\' stroke-width=\'2\'><circle cx=\'12\' cy=\'12\' r=\'10\'/></svg>'">
+                    <div class="inv-name" style="color: var(--${rotundDef.rarity.toLowerCase()})">${mutNamePrefix}${rotundDef.name}</div>
                 `;
                 this.grid.appendChild(card);
             }
         });
-
         this.modal.classList.remove("hidden-modal");
     },
-
     claimOfflineRewards() {
         this.modal.classList.add("hidden-modal");
-        if (Player.autoRollActive && !isSpinning) {
-            spin();
-        }
+        if (Player.autoRollActive && !isSpinning) spin();
     },
-
-    showIndexCardModal(item, computedChance) {
+    showIndexCardModal(item, computedChance, mutStr) {
         const title = document.getElementById("idx-card-title");
         const rarityBadge = document.getElementById("idx-card-rarity");
         const img = document.getElementById("idx-card-img");
-        
-        // Stat node pointers
         const statValue = document.getElementById("stat-payout-value");
         const statRolled = document.getElementById("stat-lifetime-rolled");
         const statChance = document.getElementById("stat-computed-chance");
 
-        // Update modal dynamic contents
-        title.innerText = item.name;
+        const mutData = MUTATIONS[mutStr.toUpperCase()];
+        const mutNamePrefix = mutStr !== 'none' ? `${mutData.name} ` : '';
+
+        title.innerText = `${mutNamePrefix}${item.name}`;
         rarityBadge.innerText = item.rarity;
         rarityBadge.style.backgroundColor = `var(--${item.rarity.toLowerCase()})`;
         
-        // Dynamically style modal body drop shadow
         const premiumCardElement = document.querySelector(".premium-showcase-card");
         premiumCardElement.className = `premium-showcase-card index-glow-${item.rarity.toLowerCase()}`;
 
         img.src = `images/${item.file}`;
-        img.onerror = () => {
-            img.src = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='64' height='64' viewBox='0 0 24 24' fill='none' stroke='%23333' stroke-width='1.5'><circle cx='12' cy='12' r='10'/></svg>";
-        };
+        img.className = mutStr !== 'none' ? `mutation-${mutStr}` : '';
+        img.onerror = () => { img.src = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='64' height='64' viewBox='0 0 24 24' fill='none' stroke='%23333' stroke-width='1.5'><circle cx='12' cy='12' r='10'/></svg>"; };
 
-        // Render calculated contextual stats
         const currentMultiplier = 1 + Player.rebirths;
-        const totalBasePayout = item.value * currentMultiplier;
+        const totalBasePayout = item.value * currentMultiplier * mutData.multiplier;
         statValue.innerText = totalBasePayout.toLocaleString();
 
-        const totalTimesRolled = Player.lifetimeStats[item.id] || 0;
+        const exactKey = `${item.id}-${mutStr}`;
+        const totalTimesRolled = Player.lifetimeStats[exactKey] || 0;
         statRolled.innerText = totalTimesRolled.toLocaleString();
         
-        statChance.innerText = `${computedChance.toFixed(4)}%`;
-
-        // Unhide Modal window system
+        statChance.innerText = `${computedChance.toFixed(6)}%`;
         this.indexCardModal.classList.remove("hidden-modal");
     },
-
     closeIndexCardModal() {
         this.indexCardModal.classList.add("hidden-modal");
     }
 };
 
-// 8. Core Native Global Event Hook Wireframes & Page Visibility Interceptor
 autoBtn.addEventListener("click", () => {
     Player.autoRollActive = !Player.autoRollActive;
     if (Player.autoRollActive) {
@@ -736,9 +690,7 @@ autoBtn.addEventListener("click", () => {
     } else {
         autoBtn.innerText = "AUTO: OFF";
         autoBtn.classList.remove("active-mode");
-        if (!isSpinning) {
-            rollBtn.disabled = false;
-        }
+        if (!isSpinning) rollBtn.disabled = false;
     }
 });
 
@@ -746,9 +698,7 @@ rollBtn.addEventListener("click", spin);
 
 document.addEventListener("visibilitychange", () => {
     if (document.hidden) {
-        if (Player.autoRollActive) {
-            awayStartTime = Date.now();
-        }
+        if (Player.autoRollActive) awayStartTime = Date.now();
     } else {
         if (awayStartTime && Player.autoRollActive) {
             const elapsed = Date.now() - awayStartTime;
@@ -762,8 +712,7 @@ document.addEventListener("visibilitychange", () => {
 
             if (calculatedRolls > 0) {
                 if (animationFrameId) cancelAnimationFrame(animationFrameId);
-                isSpinning = false;
-                rollBtn.disabled = false;
+                isSpinning = false; rollBtn.disabled = false;
 
                 let gains = { coins: 0, items: {} };
                 const safeMaxLimit = Math.min(calculatedRolls, 50000); 
@@ -773,14 +722,16 @@ document.addEventListener("visibilitychange", () => {
                     const totalTracks = 1 + Player.upgrades.doubleRoll;
                     for (let t = 0; t < totalTracks; t++) {
                         const winner = getRandomRotund();
-                        const scaledValue = winner.value * multiplier;
+                        const mutMultiplier = MUTATIONS[winner.mutation.toUpperCase()].multiplier;
+                        const scaledValue = winner.value * multiplier * mutMultiplier;
                         
-                        Player.inventory[winner.id] = (Player.inventory[winner.id] || 0) + 1;
-                        Player.lifetimeStats[winner.id] = (Player.lifetimeStats[winner.id] || 0) + 1;
+                        const invKey = `${winner.id}-${winner.mutation}`;
+                        Player.inventory[invKey] = (Player.inventory[invKey] || 0) + 1;
+                        Player.lifetimeStats[invKey] = (Player.lifetimeStats[invKey] || 0) + 1;
                         Player.coins += scaledValue;
                         
                         gains.coins += scaledValue;
-                        gains.items[winner.id] = (gains.items[winner.id] || 0) + 1;
+                        gains.items[invKey] = (gains.items[invKey] || 0) + 1;
                     }
                 }
 
@@ -788,25 +739,19 @@ document.addEventListener("visibilitychange", () => {
                 Menu.updateInventory();
                 Shop.checkRebirthAvailability();
                 Storage.save();
-
                 UIManager.showOfflineModal(calculatedRolls, gains);
                 syncRouletteViewports();
             } else {
-                if (Player.autoRollActive && !isSpinning) {
-                    spin();
-                }
+                if (Player.autoRollActive && !isSpinning) spin();
             }
         }
     }
 });
 
-// Boot Setup Initialization
 Storage.load(); 
 syncHUD();
 
-if (Player.upgrades.autoRoll > 0) {
-    autoBtn.classList.remove("hidden-upgrade");
-}
+if (Player.upgrades.autoRoll > 0) autoBtn.classList.remove("hidden-upgrade");
 
 syncRouletteViewports();
 Shop.renderTrackers();

@@ -6,7 +6,6 @@
     <title>Rotund Roulette</title>
     
     <link rel="icon" type="image/png" href="images/favicon.png">
-    
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -14,7 +13,7 @@
     <div id="secret-stage" class="hidden-stage">
         <div id="secret-flashback"></div>
         <div id="secret-content">
-            <p class="secret-alert">🚨 SECRET ACQUISITION 🚨</p>
+            <p class="secret-alert">🚨 SECRET 🚨</p>
             <img id="secret-epicenter-img" src="" alt="Secret Rotund">
             <h1 id="secret-epicenter-name">UNKNOWN</h1>
             <button id="secret-dismiss" onclick="Cinematics.dismissSecret()">COLLECT</button>
@@ -129,6 +128,16 @@
             </div>
 
             <div id="tab-index" class="tab-content hidden-tab">
+                <div class="sort-bar">
+                    <select id="mutation-filter-select" onchange="Menu.updateIndex(this.value)">
+                        <option value="all">All Mutations</option>
+                        <option value="none">Normal</option>
+                        <option value="gold">Gold</option>
+                        <option value="diamond">Diamond</option>
+                        <option value="rainbow">Rainbow</option>
+                        <option value="void">Void</option>
+                    </select>
+                </div>
                 <div id="index-list" class="flex-list"></div>
             </div>
         </div>
@@ -182,20 +191,6 @@
             <button class="modal-close-generic-btn" onclick="UIManager.closeIndexCardModal()">CLOSE CONTAINER</button>
         </div>
     </div>
-
-<div id="tab-index" class="tab-content hidden-tab">
-    <div class="sort-bar">
-        <select onchange="Menu.updateIndex(this.value)">
-            <option value="all">All Mutations</option>
-            <option value="none">Normal</option>
-            <option value="gold">Gold</option>
-            <option value="diamond">Diamond</option>
-            <option value="rainbow">Rainbow</option>
-            <option value="void">Void</option>
-        </select>
-    </div>
-    <div id="index-list" class="flex-list"></div>
-</div>
 
     <script src="script.js"></script>
 </body>
