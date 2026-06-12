@@ -82,7 +82,7 @@
         </div>
         
         <div class="drawer-body">
-            <div id="tab-shop" class="tab-content">
+           <div id="tab-shop" class="tab-content">
                 <div class="shop-item">
                     <div>
                         <h3>Quick Rolls</h3>
@@ -116,6 +116,38 @@
                     <button id="buy-autoRoll" onclick="Shop.buy('autoRoll')"></button>
                 </div>
 
+                <div class="shop-item">
+                    <div>
+                        <h3>Coin Multiplier</h3>
+                        <p class="item-desc">Increases all coin payouts by +50% per tier.</p>
+                        <div class="progress-container" id="track-coinBonus"></div>
+                    </div>
+                    <button id="buy-coinBonus" onclick="Shop.buy('coinBonus')"></button>
+                </div>
+                <div class="shop-item">
+                    <div>
+                        <h3>Mutation Luck</h3>
+                        <p class="item-desc">Increases the chance of rolling mutations by +25% per tier.</p>
+                        <div class="progress-container" id="track-mutationLuck"></div>
+                    </div>
+                    <button id="buy-mutationLuck" onclick="Shop.buy('mutationLuck')"></button>
+                </div>
+                <div class="shop-item">
+                    <div>
+                        <h3>Faster Auto Roll</h3>
+                        <p class="item-desc">Reduces the delay between automatic spins.</p>
+                        <div class="progress-container" id="track-fasterAuto"></div>
+                    </div>
+                    <button id="buy-fasterAuto" onclick="Shop.buy('fasterAuto')"></button>
+                </div>
+
+                <div id="rebirth-shop-section" class="rebirth-zone rebirth-locked">
+                    <h3>Divine Ascension</h3>
+                    <p class="item-desc">Sacrifice all coins, upgrades, and your inventory items to gain a permanent, stackable <b>+5x Coin Multiplier</b> factor across the environment.</p>
+                    <button id="execute-rebirth-btn" onclick="Cinematics.executeRebirthSequence()" disabled>REQUIRES ALL MAX UPGRADES</button>
+                </div>
+            </div>
+            
                 <div id="rebirth-shop-section" class="rebirth-zone rebirth-locked">
                     <h3>Divine Ascension</h3>
                     <p class="item-desc">Sacrifice all coins, upgrades, and your inventory items to gain a permanent, stackable <b>+1x Coin Multiplier</b> factor across the environment.</p>
@@ -168,7 +200,7 @@
                 <h2 id="idx-card-title">Rotund Name</h2>
                 <span id="idx-card-rarity" class="badge">RARITY</span>
                 
-                <div class="showcase-image-wrapper">
+                <div c<div id=lass="showcase-image-wrapper">
                     <img id="idx-card-img" src="" alt="Rotund Image">
                 </div>
                 

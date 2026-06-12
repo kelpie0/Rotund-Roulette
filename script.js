@@ -1,31 +1,21 @@
 // 1. Data Store / Config Matrix Definition
 const MUTATIONS = {
-    // Exact probabilities calculated to sum to 100%. (0.749499 represents ~74.95%)
-    NONE: { id: "none", chance: 0.749499, name: "", multiplier: 1, color: "transparent" },
+    NONE: { id: "none", chance: 0, name: "", multiplier: 1, color: "transparent" },
     GOLD: { id: "gold", chance: 0.20, name: "Gold", multiplier: 2, color: "#d4af37" },
     DIAMOND: { id: "diamond", chance: 0.05, name: "Diamond", multiplier: 5, color: "#0ea5e9" },
     RAINBOW: { id: "rainbow", chance: 0.0005, name: "Rainbow", multiplier: 20, color: "linear-gradient(90deg, red, orange, yellow, green, blue, indigo, violet)" },
     VOID: { id: "void", chance: 0.000001, name: "Void", multiplier: 100, color: "black" }
 };
 
-const Game = {
-    rebirth() {
-        if (!confirm("Are you sure you want to Rebirth? This will reset your coins, inventory, and upgrades!")) return;
-        Player.coins = 0;
-        Player.inventory = {};
-        Player.upgrades = { quickRoll: 0, doubleRoll: 0, luck: 0, autoRoll: 0 };
-        Player.autoRollActive = false;
-        autoBtn.innerText = "AUTO: OFF";
-        autoBtn.classList.remove("active-mode");
-        document.getElementById("coin-balance").innerText = "0";
-        document.getElementById("auto-roll-btn").classList.add("hidden-upgrade");
-        syncRouletteViewports();
-        Menu.updateInventory();
-        Menu.updateIndex();
-        Shop.renderTrackers();
-        Storage.save();
-        location.reload(); 
-    }
+const UPGRADE_DATA = {
+    quickRoll: { max: 4, baseCost: 300, multiplier: 2.5 },
+    doubleRoll: { max: 3, baseCost: 1000, multiplier: 3.5 },
+    luck: { max: 5, baseCost: 500, multiplier: 3.0 },
+    autoRoll: { max: 1, baseCost: 800, multiplier: 1 },
+    // New Late-Game Sinks
+    coinBonus: { max: 5, baseCost: 5000, multiplier: 3.0 },
+    mutationLuck: { max: 5, baseCost: 15000, multiplier: 4.0 },
+    fasterAuto: { max: 5, baseCost: 10000, multiplier: 3.5 }
 };
 
 const ROTUNDS = [
@@ -51,19 +41,12 @@ const ROTUNDS = [
     { id: "r20", name: "Rebirth Rotund", file: "rebirthrotund.png", rarity: "ANGELIC", weight: 0.0005, value: 5000000 }
 ];
 
-const UPGRADE_DATA = {
-    quickRoll: { max: 4, baseCost: 300, multiplier: 2.5 },
-    doubleRoll: { max: 3, baseCost: 1000, multiplier: 3.5 },
-    luck: { max: 5, baseCost: 500, multiplier: 3.0 },
-    autoRoll: { max: 1, baseCost: 800, multiplier: 1 }
-};
-
 let Player = {
     coins: 0,
     rebirths: 0,
     inventory: {},
     lifetimeStats: {},
-    upgrades: { quickRoll: 0, doubleRoll: 0, luck: 0, autoRoll: 0 },
+    upgrades: { quickRoll: 0, doubleRoll: 0, luck: 0, autoRoll: 0, coinBonus: 0, mutationLuck: 0, fasterAuto: 0 },
     autoRollActive: false
 };
 
@@ -72,7 +55,7 @@ let animationFrameId = null;
 let awayStartTime = null; 
 
 const Storage = {
-    saveKey: "RotundRoulette_SaveState_v5",
+    saveKey: "RotundRoulette_SaveState_v6",
     save() {
         const payload = {
             coins: Player.coins, rebirths: Player.rebirths,
@@ -98,9 +81,7 @@ const Storage = {
             }
             if (parsed.lifetimeStats) Player.lifetimeStats = parsed.lifetimeStats;
             if (parsed.upgrades) Player.upgrades = { ...Player.upgrades, ...parsed.upgrades };
-        } catch (e) {
-            console.error("Failed to parse saved session data:", e);
-        }
+        } catch (e) { console.error("Failed to parse saved session data:", e); }
     }
 };
 
@@ -178,8 +159,11 @@ function getRandomRotund() {
     let mRand = Math.random();
     let mutationStr = "none";
     let cumulative = 0;
+    let mutChanceMult = 1 + (Player.upgrades.mutationLuck * 0.25);
+
     for (const key in MUTATIONS) {
-        cumulative += MUTATIONS[key].chance;
+        if (key === "NONE") continue;
+        cumulative += (MUTATIONS[key].chance * mutChanceMult);
         if (mRand < cumulative) { mutationStr = key.toLowerCase(); break; }
     }
     return { ...base, mutation: mutationStr };
@@ -197,7 +181,7 @@ const TARGET_INDEX = 35;
 function syncHUD() {
     document.getElementById("coin-balance").innerText = Player.coins.toLocaleString();
     document.getElementById("rebirth-balance").innerText = Player.rebirths.toLocaleString();
-    document.getElementById("multiplier-value").innerText = `${(1 + Player.rebirths)}x`;
+    document.getElementById("multiplier-value").innerText = `${1 + (Player.rebirths * 5)}x`;
 }
 
 function syncRouletteViewports() {
@@ -288,11 +272,12 @@ function processSpinResults(winners) {
 function finalizeSpin(winners) {
     resultsWrapper.innerHTML = "";
     let highestRarity = "COMMON";
-    const multiplier = 1 + Player.rebirths;
+    const rebirthMult = 1 + (Player.rebirths * 5);
+    const shopCoinMult = 1 + (Player.upgrades.coinBonus * 0.5);
 
     winners.forEach(winner => {
         const mutMultiplier = MUTATIONS[winner.mutation.toUpperCase()].multiplier;
-        const scaledValue = winner.value * multiplier * mutMultiplier;
+        const scaledValue = winner.value * rebirthMult * mutMultiplier * shopCoinMult;
         
         const invKey = `${winner.id}-${winner.mutation}`;
         Player.inventory[invKey] = (Player.inventory[invKey] || 0) + 1;
@@ -334,7 +319,8 @@ function finalizeSpin(winners) {
     Menu.updateInventory(); Shop.checkRebirthAvailability(); Storage.save(); 
     isSpinning = false; 
 
-    if (Player.autoRollActive) setTimeout(() => { if (Player.autoRollActive) spin(); }, 1000);
+    const autoDelay = Math.max(100, 1000 - (Player.upgrades.fasterAuto * 150));
+    if (Player.autoRollActive) setTimeout(() => { if (Player.autoRollActive) spin(); }, autoDelay);
     else rollBtn.disabled = false;
 }
 
@@ -425,6 +411,7 @@ const Menu = {
     updateIndex(filterMutation = document.getElementById("mutation-filter-select").value) {
         const list = document.getElementById("index-list"); list.innerHTML = "";
         const { table, totalWeight } = calculateWeightsMatrix();
+        let mutChanceMult = 1 + (Player.upgrades.mutationLuck * 0.25);
 
         [...table].sort((a,b) => b.calcWeight - a.calcWeight).forEach(item => {
             const isLuckBoosted = Player.upgrades.luck > 0 && item.rarity !== "COMMON";
@@ -433,7 +420,17 @@ const Menu = {
             renderMutations.forEach(mutStr => {
                 const mutData = MUTATIONS[mutStr.toUpperCase()];
                 const baseChance = (item.calcWeight / totalWeight);
-                const complexChanceValue = (baseChance * mutData.chance) * 100;
+                
+                let finalMutChance = 0;
+                if (mutStr === 'none') {
+                    let totalMut = 0;
+                    for(let k in MUTATIONS) { if(k !== 'NONE') totalMut += (MUTATIONS[k].chance * mutChanceMult); }
+                    finalMutChance = Math.max(0, 1 - totalMut);
+                } else {
+                    finalMutChance = mutData.chance * mutChanceMult;
+                }
+
+                const complexChanceValue = (baseChance * finalMutChance) * 100;
                 const percentText = complexChanceValue < 0.0001 ? complexChanceValue.toExponential(2) : complexChanceValue.toFixed(4);
 
                 const mutClass = mutStr !== 'none' ? `mutation-${mutStr}` : '';
@@ -553,8 +550,6 @@ const UIManager = {
         const mutData = MUTATIONS[mutStr.toUpperCase()];
         title.innerText = item.name;
         
-        // Strip out the previous static pill styling from the container 
-        // to use it strictly as a flex wrapper for BOTH independent badges side-by-side
         rarityBadge.className = "";
         rarityBadge.style.display = "flex";
         rarityBadge.style.justifyContent = "center";
@@ -577,8 +572,9 @@ const UIManager = {
         img.className = mutStr !== 'none' ? `mutation-${mutStr}` : '';
         img.onerror = () => { img.src = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='64' height='64' viewBox='0 0 24 24' fill='none' stroke='%23333' stroke-width='1.5'><circle cx='12' cy='12' r='10'/></svg>"; };
 
-        const currentMultiplier = 1 + Player.rebirths;
-        const totalBasePayout = item.value * currentMultiplier * mutData.multiplier;
+        const rebirthMult = 1 + (Player.rebirths * 5);
+        const shopCoinMult = 1 + (Player.upgrades.coinBonus * 0.5);
+        const totalBasePayout = item.value * rebirthMult * mutData.multiplier * shopCoinMult;
         statValue.innerText = totalBasePayout.toLocaleString();
 
         const exactKey = `${item.id}-${mutStr}`;
@@ -609,7 +605,11 @@ document.addEventListener("visibilitychange", () => {
     } else {
         if (awayStartTime && Player.autoRollActive) {
             const elapsed = Date.now() - awayStartTime; awayStartTime = null;
-            const fullCycleTime = [4200, 2200, 1000, 500, 250][Player.upgrades.quickRoll] + 1000; 
+            
+            const baseRollDuration = [4200, 2200, 1000, 500, 250][Player.upgrades.quickRoll];
+            const autoDelay = Math.max(100, 1000 - (Player.upgrades.fasterAuto * 150));
+            const fullCycleTime = baseRollDuration + autoDelay; 
+
             const calculatedRolls = Math.floor(elapsed / fullCycleTime);
 
             if (calculatedRolls > 0) {
@@ -618,13 +618,15 @@ document.addEventListener("visibilitychange", () => {
 
                 let gains = { coins: 0, items: {} };
                 const safeMaxLimit = Math.min(calculatedRolls, 50000); 
-                const multiplier = 1 + Player.rebirths;
+                
+                const rebirthMult = 1 + (Player.rebirths * 5);
+                const shopCoinMult = 1 + (Player.upgrades.coinBonus * 0.5);
 
                 for (let i = 0; i < safeMaxLimit; i++) {
                     const totalTracks = 1 + Player.upgrades.doubleRoll;
                     for (let t = 0; t < totalTracks; t++) {
                         const winner = getRandomRotund();
-                        const scaledValue = winner.value * multiplier * MUTATIONS[winner.mutation.toUpperCase()].multiplier;
+                        const scaledValue = winner.value * rebirthMult * MUTATIONS[winner.mutation.toUpperCase()].multiplier * shopCoinMult;
                         const invKey = `${winner.id}-${winner.mutation}`;
                         
                         Player.inventory[invKey] = (Player.inventory[invKey] || 0) + 1;
