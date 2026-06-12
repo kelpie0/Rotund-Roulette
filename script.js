@@ -12,7 +12,7 @@ const UPGRADE_DATA = {
     doubleRoll: { max: 3, baseCost: 1000, multiplier: 3.5 },
     luck: { max: 5, baseCost: 500, multiplier: 3.0 },
     autoRoll: { max: 1, baseCost: 800, multiplier: 1 },
-    // New Late-Game Sinks
+    // Late-Game Economy Sinks
     coinBonus: { max: 5, baseCost: 5000, multiplier: 3.0 },
     mutationLuck: { max: 5, baseCost: 15000, multiplier: 4.0 },
     fasterAuto: { max: 5, baseCost: 10000, multiplier: 3.5 }
