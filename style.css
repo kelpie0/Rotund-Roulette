@@ -47,8 +47,7 @@ body {
     width: 14px; 
     height: 14px; 
     object-fit: contain; 
-    vertical-align: middle;
-    display: inline-block;
+    display: block;
 }
 .coin-display .coin-icon { width: 22px; height: 22px; }
 .rebirth-display .coin-icon { width: 20px; height: 20px; }
@@ -106,20 +105,27 @@ header h1 { font-size: 1.4rem; font-weight: 900; letter-spacing: 0.2em; margin-b
 #results-wrapper { display: flex; justify-content: center; gap: 1.25rem; flex-wrap: wrap; }
 .result-card { display: flex; flex-direction: column; align-items: center; min-width: 100px; position: relative; }
 .result-card img { max-height: 75px; object-fit: contain; margin-bottom: 0.75rem; }
-.badge {
-    display: inline-flex;
-    align-items: center;
-    padding: 2px 8px;
-    border-radius: 4px;
-    font-size: 0.6rem;
-    font-weight: 800;
-    color: white;
+.result-card h2 { font-size: 0.9rem; font-weight: 800; text-align: center; }
+
+/* Refined Badge Constraints */
+.badge { 
+    display: inline-flex; justify-content: center; align-items: center; 
+    padding: 0.25rem 0.65rem; font-size: 0.58rem; font-weight: 800; 
+    border-radius: 50px; color: #fff; letter-spacing: 0.05em; line-height: 1;
 }
 
-.result-coin-row {
-    margin-top: 0.5rem;
+/* Bulletproof flexbox vertical leveling for coins and text */
+.result-coin-row { 
+    display: flex; align-items: center; justify-content: center; gap: 5px; 
+    font-size: 0.8rem; color: var(--text-muted); margin-top: 6px; 
 }
-.result-coin-row span { display: inline-block; line-height: 1; }
+.result-coin-row span { 
+    display: block; line-height: 1; font-weight: 800; font-family: monospace; 
+    transform: translateY(1px); /* Slight nudge to perfectly align the font baseline */
+}
+.result-coin-row img.coin-icon {
+    width: 16px; height: 16px; margin: 0;
+}
 
 .controls-row { display: flex; gap: 12px; width: 100%; }
 #roll-button, #auto-roll-btn { border: none; font-weight: 800; letter-spacing: 0.15em; border-radius: 8px; cursor: pointer; transition: 0.2s; }
@@ -242,7 +248,7 @@ button:disabled { background: #161619 !important; color: #4b4b50 !important; cur
 .offline-grid-tweak::-webkit-scrollbar-thumb { background: #222225; border-radius: 10px; }
 
 .modal-footer { width: 100%; display: flex; flex-direction: column; align-items: center; gap: 1.5rem; margin-top: auto;}
-.coin-total-row { font-family: monospace; font-weight: 800; font-size: 1.1rem; display: flex; align-items: center; gap: 10px; color: #fff; }
+.coin-total-row { font-family: monospace; font-weight: 800; font-size: 1.1rem; display: flex; align-items: center; justify-content: center; gap: 6px; color: #fff; }
 .coin-total-row .total-label { color: var(--text-muted); font-size: 0.8rem; letter-spacing: 0.1em; }
 
 #offline-claim-btn, .modal-close-generic-btn { width: 100%; background: #fff; color: #000; border: none; padding: 1.1rem; font-size: 0.9rem; font-weight: 800; letter-spacing: 0.2em; border-radius: 12px; cursor: pointer; transition: 0.2s; }
@@ -250,7 +256,6 @@ button:disabled { background: #161619 !important; color: #4b4b50 !important; cur
 
 .premium-showcase-card { background: #111113; border: 1px solid var(--border-color); border-radius: 20px; padding: 2rem; width: 100%; max-width: 320px; display: flex; flex-direction: column; align-items: center; position: relative; margin-bottom: 2rem; }
 .premium-showcase-card h2 { font-size: 1.2rem; font-weight: 900; letter-spacing: 0.05em; margin-bottom: 0.35rem; }
-.premium-showcase-card .badge { margin-bottom: 1.75rem; }
 .showcase-image-wrapper { height: 110px; display: flex; align-items: center; justify-content: center; margin-bottom: 1.75rem; transform: translateY(-8px); }
 .showcase-image-wrapper img { max-height: 100px; max-width: 100px; object-fit: contain; }
 
@@ -268,32 +273,22 @@ button:disabled { background: #161619 !important; color: #4b4b50 !important; cur
 .index-glow-secret { border-color: var(--secret); box-shadow: 0 0 45px rgba(239, 68, 68, 0.55); }
 .index-glow-angelic { border-color: var(--angelic); box-shadow: 0 0 50px rgba(56, 189, 248, 0.65); }
 
-/* --- MUTATION VISUAL OVERLAYS --- */
-/* Uses filters to simulate the shiny layers without needing asset replacement */
-.mutation-gold { 
-    filter: drop-shadow(0 0 10px gold) sepia(1) saturate(3) hue-rotate(-25deg) brightness(1.2); 
-}
-.mutation-diamond { 
-    filter: drop-shadow(0 0 15px cyan) sepia(1) saturate(5) hue-rotate(180deg) brightness(1.4); 
-}
-.mutation-rainbow { 
-    animation: rainbow-shift 2.5s infinite linear; 
-    filter: drop-shadow(0 0 15px magenta) saturate(2);
-}
-.mutation-void { 
-    filter: drop-shadow(0 0 25px #111) grayscale(1) brightness(0.15) contrast(3); 
-}
-
-@keyframes rainbow-shift {
-    0% { filter: drop-shadow(0 0 15px red) hue-rotate(0deg) saturate(2); }
-    50% { filter: drop-shadow(0 0 15px cyan) hue-rotate(180deg) saturate(2); }
-    100% { filter: drop-shadow(0 0 15px red) hue-rotate(360deg) saturate(2); }
-}
-
+/* Badge for Inventory Card */
 .mutation-badge {
     position: absolute; top: 4px; left: 4px; transform: none;
     font-size: 0.45rem; font-weight: 900; padding: 2px 4px; border-radius: 4px;
     color: #fff; text-shadow: 0px 1px 2px rgba(0,0,0,0.8); 
     text-transform: uppercase; white-space: nowrap;
     background: rgba(0,0,0,0.7); box-shadow: 0 0 5px rgba(0,0,0,0.8);
+}
+
+.mutation-gold { filter: drop-shadow(0 0 10px gold) sepia(1) saturate(3) hue-rotate(-25deg) brightness(1.2); }
+.mutation-diamond { filter: drop-shadow(0 0 15px cyan) sepia(1) saturate(5) hue-rotate(180deg) brightness(1.4); }
+.mutation-rainbow { animation: rainbow-shift 2.5s infinite linear; filter: drop-shadow(0 0 15px magenta) saturate(2); }
+.mutation-void { filter: drop-shadow(0 0 25px #111) grayscale(1) brightness(0.15) contrast(3); }
+
+@keyframes rainbow-shift {
+    0% { filter: drop-shadow(0 0 15px red) hue-rotate(0deg) saturate(2); }
+    50% { filter: drop-shadow(0 0 15px cyan) hue-rotate(180deg) saturate(2); }
+    100% { filter: drop-shadow(0 0 15px red) hue-rotate(360deg) saturate(2); }
 }

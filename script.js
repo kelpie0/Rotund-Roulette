@@ -2,8 +2,8 @@
 const MUTATIONS = {
     // Exact probabilities calculated to sum to 100%. (0.749499 represents ~74.95%)
     NONE: { id: "none", chance: 0.749499, name: "", multiplier: 1, color: "transparent" },
-    GOLD: { id: "gold", chance: 0.20, name: "Gold", multiplier: 2, color: "gold" },
-    DIAMOND: { id: "diamond", chance: 0.05, name: "Diamond", multiplier: 5, color: "cyan" },
+    GOLD: { id: "gold", chance: 0.20, name: "Gold", multiplier: 2, color: "#d4af37" },
+    DIAMOND: { id: "diamond", chance: 0.05, name: "Diamond", multiplier: 5, color: "#0ea5e9" },
     RAINBOW: { id: "rainbow", chance: 0.0005, name: "Rainbow", multiplier: 20, color: "linear-gradient(90deg, red, orange, yellow, green, blue, indigo, violet)" },
     VOID: { id: "void", chance: 0.000001, name: "Void", multiplier: 100, color: "black" }
 };
@@ -54,14 +54,14 @@ const ROTUNDS = [
 const UPGRADE_DATA = {
     quickRoll: { max: 4, baseCost: 300, multiplier: 2.5 },
     doubleRoll: { max: 3, baseCost: 1000, multiplier: 3.5 },
-    luck: { max: 7, baseCost: 500, multiplier: 3.0 },
+    luck: { max: 5, baseCost: 500, multiplier: 3.0 },
     autoRoll: { max: 1, baseCost: 800, multiplier: 1 }
 };
 
 let Player = {
     coins: 0,
     rebirths: 0,
-    inventory: {}, // Format is now: "r1-gold": 1
+    inventory: {},
     lifetimeStats: {},
     upgrades: { quickRoll: 0, doubleRoll: 0, luck: 0, autoRoll: 0 },
     autoRollActive: false
@@ -89,7 +89,6 @@ const Storage = {
             if (typeof parsed.coins === "number") Player.coins = parsed.coins;
             if (typeof parsed.rebirths === "number") Player.rebirths = parsed.rebirths;
             if (parsed.inventory) {
-                // Migration catch for old pre-mutation saves
                 const migratedInv = {};
                 Object.keys(parsed.inventory).forEach(k => {
                     if(!k.includes("-")) migratedInv[`${k}-none`] = parsed.inventory[k];
@@ -156,14 +155,11 @@ const AudioFX = {
     }
 };
 
-// 2. Core Dynamic Luck-Assisted Roulette Drop Calculations
 function calculateWeightsMatrix() {
     let totalWeight = 0;
     const table = ROTUNDS.map(item => {
         let w = item.weight;
-        if (item.rarity !== "COMMON") {
-            w = item.weight * (1 + (Player.upgrades.luck * 0.10));
-        }
+        if (item.rarity !== "COMMON") w = item.weight * (1 + (Player.upgrades.luck * 0.10));
         totalWeight += w;
         return { ...item, calcWeight: w };
     });
@@ -179,21 +175,16 @@ function getRandomRotund() {
         rand -= entry.calcWeight;
     }
 
-    // Roll for Mutation Overlay
     let mRand = Math.random();
     let mutationStr = "none";
     let cumulative = 0;
     for (const key in MUTATIONS) {
         cumulative += MUTATIONS[key].chance;
-        if (mRand < cumulative) {
-            mutationStr = key.toLowerCase();
-            break;
-        }
+        if (mRand < cumulative) { mutationStr = key.toLowerCase(); break; }
     }
     return { ...base, mutation: mutationStr };
 }
 
-// 3. Main Rolling UI Generator Matrix
 const stackContainer = document.getElementById("roulette-stack-container");
 const rollBtn = document.getElementById("roll-button");
 const autoBtn = document.getElementById("auto-roll-btn");
@@ -227,9 +218,7 @@ function syncRouletteViewports() {
 function buildIndividualTrack(trackNode, winningItem) {
     trackNode.innerHTML = "";
     const sequence = [];
-    for (let i = 0; i < 42; i++) {
-        sequence.push(i === TARGET_INDEX ? winningItem : getRandomRotund()); // Random filler objects
-    }
+    for (let i = 0; i < 42; i++) sequence.push(i === TARGET_INDEX ? winningItem : getRandomRotund());
     sequence.forEach(item => {
         const node = document.createElement("div");
         const mutClass = item.mutation !== 'none' ? `mutation-${item.mutation}` : '';
@@ -244,14 +233,10 @@ function buildIndividualTrack(trackNode, winningItem) {
 
 function spin() {
     if (isSpinning) return;
-    isSpinning = true;
-    rollBtn.disabled = true;
-    resultDisplay.classList.add("hidden");
+    isSpinning = true; rollBtn.disabled = true; resultDisplay.classList.add("hidden");
 
     const totalTracks = 1 + Player.upgrades.doubleRoll;
-    const winners = [];
-    const trackElements = [];
-    const targetTranslations = [];
+    const winners = []; const trackElements = []; const targetTranslations = [];
     const viewports = stackContainer.querySelectorAll(".roulette-viewport");
     const viewportWidth = stackContainer.clientWidth;
 
@@ -262,11 +247,8 @@ function spin() {
         const placeholder = viewports[i].querySelector(".placeholder-card");
         const trackEl = viewports[i].querySelector(".track");
 
-        placeholder.classList.add("hidden");
-        trackEl.classList.remove("hidden");
-
-        buildIndividualTrack(trackEl, winner);
-        trackElements.push(trackEl);
+        placeholder.classList.add("hidden"); trackEl.classList.remove("hidden");
+        buildIndividualTrack(trackEl, winner); trackElements.push(trackEl);
 
         const targetOffset = (TARGET_INDEX * ITEM_WIDTH) - (viewportWidth / 2) + (ITEM_WIDTH / 2);
         const staggerVariance = (Math.floor(Math.random() * 30) - 15);
@@ -274,12 +256,7 @@ function spin() {
     }
 
     let startTime = null;
-    let duration = 4200;
-    if (Player.upgrades.quickRoll > 0) {
-        const intervals = [4200, 2200, 1000, 500, 250];
-        duration = intervals[Player.upgrades.quickRoll];
-    }
-
+    let duration = [4200, 2200, 1000, 500, 250][Player.upgrades.quickRoll] || 4200;
     let lastTickIndex = 0;
 
     function animate(timestamp) {
@@ -289,33 +266,23 @@ function spin() {
         const easeOut = 1 - Math.pow(1 - progress, 5);
         
         for (let i = 0; i < totalTracks; i++) {
-            const currentX = -(targetTranslations[i] * easeOut);
-            if (trackElements[i]) trackElements[i].style.transform = `translateX(${currentX}px)`;
+            if (trackElements[i]) trackElements[i].style.transform = `translateX(${-(targetTranslations[i] * easeOut)}px)`;
         }
 
         const primaryX = -(targetTranslations[0] * easeOut);
         const currentTickIndex = Math.floor(Math.abs(primaryX - (viewportWidth / 2)) / ITEM_WIDTH);
-        if (currentTickIndex !== lastTickIndex) {
-            AudioFX.tick();
-            lastTickIndex = currentTickIndex;
-        }
+        if (currentTickIndex !== lastTickIndex) { AudioFX.tick(); lastTickIndex = currentTickIndex; }
 
-        if (progress < 1) {
-            animationFrameId = requestAnimationFrame(animate);
-        } else {
-            processSpinResults(winners);
-        }
+        if (progress < 1) animationFrameId = requestAnimationFrame(animate);
+        else processSpinResults(winners);
     }
     animationFrameId = requestAnimationFrame(animate);
 }
 
 function processSpinResults(winners) {
     let specialItem = winners.find(w => ["SECRET", "ANGELIC"].includes(w.rarity));
-    if (specialItem) {
-        Cinematics.triggerSecret(specialItem, winners);
-    } else {
-        finalizeSpin(winners);
-    }
+    if (specialItem) Cinematics.triggerSecret(specialItem, winners);
+    else finalizeSpin(winners);
 }
 
 function finalizeSpin(winners) {
@@ -337,117 +304,83 @@ function finalizeSpin(winners) {
         
         const mutClass = winner.mutation !== 'none' ? `mutation-${winner.mutation}` : '';
         const mutBadge = winner.mutation !== 'none' 
-            ? `<span class="badge" style="background: ${MUTATIONS[winner.mutation.toUpperCase()].color}; text-shadow: 0 1px 2px rgba(0,0,0,0.8); margin-left: 4px;">${winner.mutation.toUpperCase()}</span>` 
+            ? `<span class="badge" style="background: ${MUTATIONS[winner.mutation.toUpperCase()].color}; text-shadow: 0 1px 2px rgba(0,0,0,0.8); margin-bottom: 0;">${winner.mutation.toUpperCase()}</span>` 
             : '';
 
-        // Added flex properties to keep everything centered and aligned
         card.innerHTML = `
             <img class="${mutClass}" src="images/${winner.file}" onerror="this.src='data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'64\' height=\'64\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'%23333\' stroke-width=\'1.5\'><circle cx=\'12\' cy=\'12\' r=\'10\'/></svg>'">
-            <div style="display: flex; justify-content: center; align-items: center; margin-bottom: 0.5rem;">
+            <div style="display: flex; justify-content: center; align-items: center; gap: 4px; margin-bottom: 0.5rem;">
                 <span class="badge" style="background-color: var(--${winner.rarity.toLowerCase()}); margin-bottom: 0;">${winner.rarity}</span>
                 ${mutBadge}
             </div>
-            <h2 style="margin-bottom: 0.5rem;">${winner.name}</h2>
-            <div class="result-coin-row" style="display: flex; justify-content: center; align-items: center; gap: 5px;">
-                <span style="font-weight: bold;">+${scaledValue.toLocaleString()}</span>
-                <img src="images/rotundcoin.png" class="coin-icon" onerror="this.style.display='none'" style="width: 20px; height: 20px;">
+            <h2 style="margin-bottom: 0.25rem;">${winner.name}</h2>
+            <div class="result-coin-row">
+                <span>+${scaledValue.toLocaleString()}</span>
+                <img src="images/rotundcoin.png" class="coin-icon" onerror="this.style.display='none'">
             </div>
         `;
         resultsWrapper.appendChild(card);
         highestRarity = winner.rarity;
     });
 
-    syncHUD();
-    resultDisplay.classList.remove("hidden");
+    syncHUD(); resultDisplay.classList.remove("hidden");
     
-    // ... rest of the function (flash effects and audio)
     if (highestRarity === "LEGENDARY") document.body.classList.add("flash-yellow");
     if (highestRarity === "MYTHIC") document.body.classList.add("flash-purple");
     if (highestRarity === "ANGELIC") document.body.classList.add("flash-blue");
     setTimeout(() => { document.body.className = ""; }, 500);
 
     AudioFX.win(highestRarity);
-    Menu.updateInventory();
-    Shop.checkRebirthAvailability();
-    
-    Storage.save(); 
+    Menu.updateInventory(); Shop.checkRebirthAvailability(); Storage.save(); 
     isSpinning = false; 
 
-    if (Player.autoRollActive) {
-        setTimeout(() => { if (Player.autoRollActive) spin(); }, 1000);
-    } else {
-        rollBtn.disabled = false;
-    }
+    if (Player.autoRollActive) setTimeout(() => { if (Player.autoRollActive) spin(); }, 1000);
+    else rollBtn.disabled = false;
 }
 
-// 4. Secret Cinematic Modal Takeover Interceptor
 const Cinematics = {
     cachedWinners: null,
     triggerSecret(secretItem, fullWinnersList) {
-        this.cachedWinners = fullWinnersList;
-        document.body.classList.add("shake-matrix");
+        this.cachedWinners = fullWinnersList; document.body.classList.add("shake-matrix");
         AudioFX.win(secretItem.rarity);
 
         setTimeout(() => {
             document.body.classList.remove("shake-matrix");
             const stage = document.getElementById("secret-stage");
-            const alertText = secretItem.rarity === "ANGELIC" ? "✨ ANGELIC ACQUISITION ✨" : "🚨 SECRET ACQUISITION 🚨";
-            document.querySelector(".secret-alert").innerText = alertText;
+            document.querySelector(".secret-alert").innerText = secretItem.rarity === "ANGELIC" ? "✨ ANGELIC ACQUISITION ✨" : "🚨 SECRET ACQUISITION 🚨";
             
             const epicImg = document.getElementById("secret-epicenter-img");
             epicImg.src = `images/${secretItem.file}`;
             epicImg.className = secretItem.mutation !== 'none' ? `mutation-${secretItem.mutation}` : '';
 
             const epicName = document.getElementById("secret-epicenter-name");
-            epicName.innerText = secretItem.name;
-            epicName.style.color = `var(--${secretItem.rarity.toLowerCase()})`;
+            epicName.innerText = secretItem.name; epicName.style.color = `var(--${secretItem.rarity.toLowerCase()})`;
             
             stage.classList.remove("hidden-stage");
         }, 600);
     },
-    dismissSecret() {
-        document.getElementById("secret-stage").classList.add("hidden-stage");
-        finalizeSpin(this.cachedWinners);
-    },
+    dismissSecret() { document.getElementById("secret-stage").classList.add("hidden-stage"); finalizeSpin(this.cachedWinners); },
     executeRebirthSequence() {
         const stage = document.getElementById("rebirth-cinematic-stage");
         const counter = document.getElementById("rebirth-odometer-counter");
         
-        counter.innerText = Player.rebirths;
-        stage.classList.remove("hidden-stage");
-        document.body.classList.add("shake-matrix");
-        AudioFX.rebirthBoom();
+        counter.innerText = Player.rebirths; stage.classList.remove("hidden-stage");
+        document.body.classList.add("shake-matrix"); AudioFX.rebirthBoom();
 
         setTimeout(() => {
-            Player.rebirths++;
-            Player.coins = 0;
-            Player.inventory = {};
+            Player.rebirths++; Player.coins = 0; Player.inventory = {};
             Object.keys(Player.upgrades).forEach(key => Player.upgrades[key] = 0);
             
             counter.classList.add("odometer-tick");
-            setTimeout(() => {
-                counter.innerText = Player.rebirths;
-                counter.classList.remove("odometer-tick");
-                document.body.classList.remove("shake-matrix");
-            }, 300);
+            setTimeout(() => { counter.innerText = Player.rebirths; counter.classList.remove("odometer-tick"); document.body.classList.remove("shake-matrix"); }, 300);
         }, 1500);
 
         setTimeout(() => {
             stage.style.opacity = "0";
             setTimeout(() => {
-                stage.classList.add("hidden-stage");
-                stage.style.opacity = "1";
-                
-                syncHUD();
-                syncRouletteViewports();
-                Shop.renderTrackers();
-                Menu.updateInventory();
-                Menu.updateIndex();
-                
-                if(document.getElementById("menu-drawer").classList.contains("hidden-drawer") === false) {
-                    Menu.toggle();
-                }
-                
+                stage.classList.add("hidden-stage"); stage.style.opacity = "1";
+                syncHUD(); syncRouletteViewports(); Shop.renderTrackers(); Menu.updateInventory(); Menu.updateIndex();
+                if(!document.getElementById("menu-drawer").classList.contains("hidden-drawer")) Menu.toggle();
                 Storage.save();
                 if (Player.autoRollActive) { isSpinning = false; spin(); }
             }, 500);
@@ -455,14 +388,8 @@ const Cinematics = {
     }
 };
 
-// 5. Responsive Floating Drawer Sub-Navigation Layout Managers
 const Menu = {
-    toggle() {
-        document.getElementById("menu-drawer").classList.toggle("hidden-drawer");
-        this.updateInventory();
-        this.updateIndex();
-        Shop.renderTrackers();
-    },
+    toggle() { document.getElementById("menu-drawer").classList.toggle("hidden-drawer"); this.updateInventory(); this.updateIndex(); Shop.renderTrackers(); },
     switchTab(tabName) {
         document.querySelectorAll(".tab-content").forEach(el => el.classList.add("hidden-tab"));
         document.querySelectorAll(".tab-btn").forEach(el => el.classList.remove("active"));
@@ -470,9 +397,7 @@ const Menu = {
         if(window.event && window.event.target) window.event.target.classList.add("active");
     },
     updateInventory() {
-        const grid = document.getElementById("inventory-grid"); grid.innerHTML = "";
-        let empty = true;
-        
+        const grid = document.getElementById("inventory-grid"); grid.innerHTML = ""; let empty = true;
         Object.keys(Player.inventory).forEach(invKey => {
             const count = Player.inventory[invKey];
             if (count > 0) {
@@ -503,20 +428,13 @@ const Menu = {
 
         [...table].sort((a,b) => b.calcWeight - a.calcWeight).forEach(item => {
             const isLuckBoosted = Player.upgrades.luck > 0 && item.rarity !== "COMMON";
-            
-            // Allow bypassing filters if they select "all". Otherwise strictly filter.
-            let renderMutations = filterMutation === 'all' 
-                ? Object.keys(MUTATIONS).map(k => k.toLowerCase()) 
-                : [filterMutation];
+            let renderMutations = filterMutation === 'all' ? Object.keys(MUTATIONS).map(k => k.toLowerCase()) : [filterMutation];
 
             renderMutations.forEach(mutStr => {
                 const mutData = MUTATIONS[mutStr.toUpperCase()];
-                
                 const baseChance = (item.calcWeight / totalWeight);
                 const complexChanceValue = (baseChance * mutData.chance) * 100;
-                const percentText = complexChanceValue < 0.0001 
-                    ? complexChanceValue.toExponential(2) 
-                    : complexChanceValue.toFixed(4);
+                const percentText = complexChanceValue < 0.0001 ? complexChanceValue.toExponential(2) : complexChanceValue.toFixed(4);
 
                 const mutClass = mutStr !== 'none' ? `mutation-${mutStr}` : '';
                 const mutBadgeHTML = mutStr !== 'none' 
@@ -524,8 +442,7 @@ const Menu = {
                     : '';
 
                 const row = document.createElement("div");
-                row.className = `index-row glow-${item.rarity.toLowerCase()}`;
-                row.style.cursor = "pointer";
+                row.className = `index-row glow-${item.rarity.toLowerCase()}`; row.style.cursor = "pointer";
                 row.innerHTML = `
                     <div class="index-left">
                         <img class="${mutClass}" src="images/${item.file}" onerror="this.src='data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'20\' height=\'20\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'%23333\' stroke-width=\'2\'><circle cx=\'12\' cy=\'12\' r=\'10\'/></svg>'">
@@ -539,10 +456,7 @@ const Menu = {
                     </div>
                     <div class="index-pct ${isLuckBoosted ? 'boosteded' : ''}">${percentText}%</div>
                 `;
-                
-                row.addEventListener("click", () => {
-                    UIManager.showIndexCardModal(item, complexChanceValue, mutStr);
-                });
+                row.addEventListener("click", () => { UIManager.showIndexCardModal(item, complexChanceValue, mutStr); });
                 list.appendChild(row);
             });
         });
@@ -550,46 +464,32 @@ const Menu = {
 };
 
 const Shop = {
-    getCost(type, currentTier) {
-        const cfg = UPGRADE_DATA[type];
-        return Math.floor(cfg.baseCost * Math.pow(cfg.multiplier, currentTier));
-    },
+    getCost(type, currentTier) { const cfg = UPGRADE_DATA[type]; return Math.floor(cfg.baseCost * Math.pow(cfg.multiplier, currentTier)); },
     checkRebirthAvailability() {
         let allMaxed = true;
-        Object.keys(UPGRADE_DATA).forEach(type => {
-            if (Player.upgrades[type] < UPGRADE_DATA[type].max) allMaxed = false;
-        });
-
-        const section = document.getElementById("rebirth-shop-section");
-        const btn = document.getElementById("execute-rebirth-btn");
+        Object.keys(UPGRADE_DATA).forEach(type => { if (Player.upgrades[type] < UPGRADE_DATA[type].max) allMaxed = false; });
+        const section = document.getElementById("rebirth-shop-section"); const btn = document.getElementById("execute-rebirth-btn");
 
         if (allMaxed) {
-            section.classList.remove("rebirth-locked");
-            section.classList.add("rebirth-available-pulse");
+            section.classList.remove("rebirth-locked"); section.classList.add("rebirth-available-pulse");
             btn.disabled = false; btn.innerText = "ASCEND NOW";
         } else {
-            section.classList.add("rebirth-locked");
-            section.classList.remove("rebirth-available-pulse");
+            section.classList.add("rebirth-locked"); section.classList.remove("rebirth-available-pulse");
             btn.disabled = true; btn.innerText = "REQUIRES ALL MAX UPGRADES";
         }
     },
     renderTrackers() {
         Object.keys(UPGRADE_DATA).forEach(type => {
-            const current = Player.upgrades[type];
-            const max = UPGRADE_DATA[type].max;
-            
-            const container = document.getElementById(`track-${type}`);
-            container.innerHTML = "";
+            const current = Player.upgrades[type]; const max = UPGRADE_DATA[type].max;
+            const container = document.getElementById(`track-${type}`); container.innerHTML = "";
             for (let i = 1; i <= max; i++) {
                 const capsule = document.createElement("div");
                 capsule.className = `tier-capsule ${i <= current ? 'active' : ''}`;
                 container.appendChild(capsule);
             }
-
             const btn = document.getElementById(`buy-${type}`);
-            if (current >= max) {
-                btn.innerText = "MAXED"; btn.classList.add("unlocked"); btn.disabled = true;
-            } else {
+            if (current >= max) { btn.innerText = "MAXED"; btn.classList.add("unlocked"); btn.disabled = true; }
+            else {
                 const cost = this.getCost(type, current);
                 btn.innerHTML = `${cost.toLocaleString()} <img src="images/rotundcoin.png" class="coin-icon" onerror="this.style.display='none'">`;
                 btn.classList.remove("unlocked"); btn.disabled = false;
@@ -598,31 +498,22 @@ const Shop = {
         this.checkRebirthAvailability();
     },
     buy(type) {
-        const current = Player.upgrades[type];
-        const max = UPGRADE_DATA[type].max;
+        const current = Player.upgrades[type]; const max = UPGRADE_DATA[type].max;
         if (current >= max) return;
-
         const cost = this.getCost(type, current);
         if (Player.coins >= cost) {
-            Player.coins -= cost;
-            Player.upgrades[type]++;
-            syncHUD();
-            this.renderTrackers();
+            Player.coins -= cost; Player.upgrades[type]++; syncHUD(); this.renderTrackers();
             if (type === "doubleRoll") syncRouletteViewports();
             if (type === "luck") Menu.updateIndex();
             if (type === "autoRoll" && Player.upgrades.autoRoll > 0) autoBtn.classList.remove("hidden-upgrade");
             Storage.save(); 
-        } else {
-            alert("Insufficient RotundCoins!");
-        }
+        } else alert("Insufficient RotundCoins!");
     }
 };
 
 const UIManager = {
-    modal: document.getElementById("offline-modal"),
-    grid: document.getElementById("offline-item-grid"),
-    summary: document.getElementById("offline-summary-text"),
-    coins: document.getElementById("offline-coins-gained"),
+    modal: document.getElementById("offline-modal"), grid: document.getElementById("offline-item-grid"),
+    summary: document.getElementById("offline-summary-text"), coins: document.getElementById("offline-coins-gained"),
     indexCardModal: document.getElementById("index-card-modal"),
 
     showOfflineModal(rollsMissed, gains) {
@@ -637,7 +528,6 @@ const UIManager = {
 
             if (rotundDef) {
                 const mutClass = mutStr !== 'none' ? `mutation-${mutStr}` : '';
-                
                 const card = document.createElement("div");
                 card.className = `inv-card glow-${rotundDef.rarity.toLowerCase()}`;
                 card.innerHTML = `
@@ -650,10 +540,8 @@ const UIManager = {
         });
         this.modal.classList.remove("hidden-modal");
     },
-    claimOfflineRewards() {
-        this.modal.classList.add("hidden-modal");
-        if (Player.autoRollActive && !isSpinning) spin();
-    },
+    claimOfflineRewards() { this.modal.classList.add("hidden-modal"); if (Player.autoRollActive && !isSpinning) spin(); },
+    
     showIndexCardModal(item, computedChance, mutStr) {
         const title = document.getElementById("idx-card-title");
         const rarityBadge = document.getElementById("idx-card-rarity");
@@ -663,16 +551,24 @@ const UIManager = {
         const statChance = document.getElementById("stat-computed-chance");
 
         const mutData = MUTATIONS[mutStr.toUpperCase()];
-
         title.innerText = item.name;
         
-        let dynamicRarityHTML = item.rarity;
+        // Strip out the previous static pill styling from the container 
+        // to use it strictly as a flex wrapper for BOTH independent badges side-by-side
+        rarityBadge.className = "";
+        rarityBadge.style.display = "flex";
+        rarityBadge.style.justifyContent = "center";
+        rarityBadge.style.alignItems = "center";
+        rarityBadge.style.gap = "6px";
+        rarityBadge.style.marginBottom = "1.75rem";
+        rarityBadge.style.backgroundColor = "transparent";
+        rarityBadge.style.padding = "0";
+
+        let dynamicRarityHTML = `<span class="badge" style="background-color: var(--${item.rarity.toLowerCase()}); margin-bottom: 0;">${item.rarity}</span>`;
         if (mutStr !== 'none') {
-            dynamicRarityHTML += `<span style="background: ${mutData.color}; color: #fff; text-shadow: 0 1px 2px rgba(0,0,0,0.8); padding: 0.25rem 0.65rem; border-radius: 50px; margin-left: 6px; font-size: 0.58rem; font-weight: 800;">${mutStr.toUpperCase()}</span>`;
+            dynamicRarityHTML += `<span class="badge" style="background: ${mutData.color}; color: #fff; text-shadow: 0 1px 2px rgba(0,0,0,0.8); margin-bottom: 0;">${mutStr.toUpperCase()}</span>`;
         }
-        
         rarityBadge.innerHTML = dynamicRarityHTML;
-        rarityBadge.style.backgroundColor = `var(--${item.rarity.toLowerCase()})`;
         
         const premiumCardElement = document.querySelector(".premium-showcase-card");
         premiumCardElement.className = `premium-showcase-card index-glow-${item.rarity.toLowerCase()}`;
@@ -686,29 +582,21 @@ const UIManager = {
         statValue.innerText = totalBasePayout.toLocaleString();
 
         const exactKey = `${item.id}-${mutStr}`;
-        const totalTimesRolled = Player.lifetimeStats[exactKey] || 0;
-        statRolled.innerText = totalTimesRolled.toLocaleString();
-        
-        statChance.innerText = computedChance < 0.0001 
-            ? `${computedChance.toExponential(2)}%` 
-            : `${computedChance.toFixed(4)}%`;
+        statRolled.innerText = (Player.lifetimeStats[exactKey] || 0).toLocaleString();
+        statChance.innerText = computedChance < 0.0001 ? `${computedChance.toExponential(2)}%` : `${computedChance.toFixed(4)}%`;
             
         this.indexCardModal.classList.remove("hidden-modal");
     },
-    closeIndexCardModal() {
-        this.indexCardModal.classList.add("hidden-modal");
-    }
+    closeIndexCardModal() { this.indexCardModal.classList.add("hidden-modal"); }
 };
 
 autoBtn.addEventListener("click", () => {
     Player.autoRollActive = !Player.autoRollActive;
     if (Player.autoRollActive) {
-        autoBtn.innerText = "AUTO: ON";
-        autoBtn.classList.add("active-mode");
+        autoBtn.innerText = "AUTO: ON"; autoBtn.classList.add("active-mode");
         if (!isSpinning) spin();
     } else {
-        autoBtn.innerText = "AUTO: OFF";
-        autoBtn.classList.remove("active-mode");
+        autoBtn.innerText = "AUTO: OFF"; autoBtn.classList.remove("active-mode");
         if (!isSpinning) rollBtn.disabled = false;
     }
 });
@@ -720,13 +608,8 @@ document.addEventListener("visibilitychange", () => {
         if (Player.autoRollActive) awayStartTime = Date.now();
     } else {
         if (awayStartTime && Player.autoRollActive) {
-            const elapsed = Date.now() - awayStartTime;
-            awayStartTime = null;
-
-            const intervals = [4200, 2200, 1000, 500, 250];
-            const baseDuration = intervals[Player.upgrades.quickRoll];
-            const fullCycleTime = baseDuration + 1000; 
-
+            const elapsed = Date.now() - awayStartTime; awayStartTime = null;
+            const fullCycleTime = [4200, 2200, 1000, 500, 250][Player.upgrades.quickRoll] + 1000; 
             const calculatedRolls = Math.floor(elapsed / fullCycleTime);
 
             if (calculatedRolls > 0) {
@@ -741,10 +624,9 @@ document.addEventListener("visibilitychange", () => {
                     const totalTracks = 1 + Player.upgrades.doubleRoll;
                     for (let t = 0; t < totalTracks; t++) {
                         const winner = getRandomRotund();
-                        const mutMultiplier = MUTATIONS[winner.mutation.toUpperCase()].multiplier;
-                        const scaledValue = winner.value * multiplier * mutMultiplier;
-                        
+                        const scaledValue = winner.value * multiplier * MUTATIONS[winner.mutation.toUpperCase()].multiplier;
                         const invKey = `${winner.id}-${winner.mutation}`;
+                        
                         Player.inventory[invKey] = (Player.inventory[invKey] || 0) + 1;
                         Player.lifetimeStats[invKey] = (Player.lifetimeStats[invKey] || 0) + 1;
                         Player.coins += scaledValue;
@@ -754,23 +636,13 @@ document.addEventListener("visibilitychange", () => {
                     }
                 }
 
-                syncHUD();
-                Menu.updateInventory();
-                Shop.checkRebirthAvailability();
-                Storage.save();
-                UIManager.showOfflineModal(calculatedRolls, gains);
-                syncRouletteViewports();
-            } else {
-                if (Player.autoRollActive && !isSpinning) spin();
-            }
+                syncHUD(); Menu.updateInventory(); Shop.checkRebirthAvailability(); Storage.save();
+                UIManager.showOfflineModal(calculatedRolls, gains); syncRouletteViewports();
+            } else if (Player.autoRollActive && !isSpinning) spin();
         }
     }
 });
 
-Storage.load(); 
-syncHUD();
-
+Storage.load(); syncHUD();
 if (Player.upgrades.autoRoll > 0) autoBtn.classList.remove("hidden-upgrade");
-
-syncRouletteViewports();
-Shop.renderTrackers();
+syncRouletteViewports(); Shop.renderTrackers();
