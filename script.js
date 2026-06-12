@@ -54,7 +54,7 @@ const ROTUNDS = [
 const UPGRADE_DATA = {
     quickRoll: { max: 4, baseCost: 300, multiplier: 2.5 },
     doubleRoll: { max: 3, baseCost: 1000, multiplier: 3.5 },
-    luck: { max: 10, baseCost: 500, multiplier: 3.0 },
+    luck: { max: 7, baseCost: 500, multiplier: 3.0 },
     autoRoll: { max: 1, baseCost: 800, multiplier: 1 }
 };
 
