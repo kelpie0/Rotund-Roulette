@@ -336,12 +336,17 @@ function finalizeSpin(winners) {
         card.className = `result-card glow-${winner.rarity.toLowerCase()}`;
         
         const mutClass = winner.mutation !== 'none' ? `mutation-${winner.mutation}` : '';
-        const mutNamePrefix = winner.mutation !== 'none' ? `${MUTATIONS[winner.mutation.toUpperCase()].name} ` : '';
+        const mutBadge = winner.mutation !== 'none' 
+            ? `<span class="badge" style="background: ${MUTATIONS[winner.mutation.toUpperCase()].color}; text-shadow: 0 1px 2px rgba(0,0,0,0.8); margin-left: 4px;">${winner.mutation.toUpperCase()}</span>` 
+            : '';
 
         card.innerHTML = `
             <img class="${mutClass}" src="images/${winner.file}" onerror="this.src='data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'64\' height=\'64\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'%23333\' stroke-width=\'1.5\'><circle cx=\'12\' cy=\'12\' r=\'10\'/></svg>'">
-            <span class="badge" style="background-color: var(--${winner.rarity.toLowerCase()})">${winner.rarity}</span>
-            <h2>${mutNamePrefix}${winner.name}</h2>
+            <div style="display: flex; justify-content: center; margin-bottom: 0.5rem; align-items: center;">
+                <span class="badge" style="background-color: var(--${winner.rarity.toLowerCase()}); margin-bottom: 0;">${winner.rarity}</span>
+                ${mutBadge}
+            </div>
+            <h2>${winner.name}</h2>
             <div class="result-coin-row">
                 <span>+${scaledValue.toLocaleString()}</span>
                 <img src="images/rotundcoin.png" class="coin-icon" onerror="this.style.display='none'">
@@ -391,9 +396,8 @@ const Cinematics = {
             epicImg.src = `images/${secretItem.file}`;
             epicImg.className = secretItem.mutation !== 'none' ? `mutation-${secretItem.mutation}` : '';
 
-            const mutNamePrefix = secretItem.mutation !== 'none' ? `${MUTATIONS[secretItem.mutation.toUpperCase()].name} ` : '';
             const epicName = document.getElementById("secret-epicenter-name");
-            epicName.innerText = `${mutNamePrefix}${secretItem.name}`;
+            epicName.innerText = secretItem.name;
             epicName.style.color = `var(--${secretItem.rarity.toLowerCase()})`;
             
             stage.classList.remove("hidden-stage");
@@ -476,7 +480,6 @@ const Menu = {
 
                 empty = false;
                 const mutClass = mutStr !== 'none' ? `mutation-${mutStr}` : '';
-                const mutNamePrefix = mutStr !== 'none' ? `${MUTATIONS[mutStr.toUpperCase()].name} ` : '';
                 const mutBadgeHTML = mutStr !== 'none' ? `<div class="mutation-badge" style="background: ${MUTATIONS[mutStr.toUpperCase()].color};">${mutStr}</div>` : '';
 
                 const card = document.createElement("div");
@@ -485,7 +488,7 @@ const Menu = {
                     <span class="inv-qty">x${count}</span>
                     <img class="${mutClass}" src="images/${itemDef.file}" onerror="this.src='data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'24\' height=\'24\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'%23333\' stroke-width=\'2\'><circle cx=\'12\' cy=\'12\' r=\'10\'/></svg>'">
                     ${mutBadgeHTML}
-                    <div class="inv-name" style="color: var(--${itemDef.rarity.toLowerCase()})">${mutNamePrefix}${itemDef.name}</div>
+                    <div class="inv-name" style="color: var(--${itemDef.rarity.toLowerCase()})">${itemDef.name}</div>
                 `;
                 grid.appendChild(card);
             }
@@ -514,7 +517,9 @@ const Menu = {
                     : complexChanceValue.toFixed(4);
 
                 const mutClass = mutStr !== 'none' ? `mutation-${mutStr}` : '';
-                const mutNamePrefix = mutStr !== 'none' ? `${mutData.name} ` : '';
+                const mutBadgeHTML = mutStr !== 'none' 
+                    ? `<span style="font-size:0.50rem; font-weight:800; background: ${mutData.color}; color: #fff; text-shadow: 0 1px 2px rgba(0,0,0,0.8); padding: 2px 4px; border-radius: 4px; margin-left: 4px; text-transform: uppercase;">${mutStr}</span>` 
+                    : '';
 
                 const row = document.createElement("div");
                 row.className = `index-row glow-${item.rarity.toLowerCase()}`;
@@ -523,8 +528,11 @@ const Menu = {
                     <div class="index-left">
                         <img class="${mutClass}" src="images/${item.file}" onerror="this.src='data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'20\' height=\'20\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'%23333\' stroke-width=\'2\'><circle cx=\'12\' cy=\'12\' r=\'10\'/></svg>'">
                         <div>
-                            <div class="index-title">${mutNamePrefix}${item.name}</div>
-                            <span style="font-size:0.55rem; font-weight:800; color: var(--${item.rarity.toLowerCase()})">${item.rarity}</span>
+                            <div class="index-title">${item.name}</div>
+                            <div style="display: flex; align-items: center; margin-top: 2px;">
+                                <span style="font-size:0.55rem; font-weight:800; color: var(--${item.rarity.toLowerCase()})">${item.rarity}</span>
+                                ${mutBadgeHTML}
+                            </div>
                         </div>
                     </div>
                     <div class="index-pct ${isLuckBoosted ? 'boosteded' : ''}">${percentText}%</div>
@@ -627,14 +635,13 @@ const UIManager = {
 
             if (rotundDef) {
                 const mutClass = mutStr !== 'none' ? `mutation-${mutStr}` : '';
-                const mutNamePrefix = mutStr !== 'none' ? `${MUTATIONS[mutStr.toUpperCase()].name} ` : '';
                 
                 const card = document.createElement("div");
                 card.className = `inv-card glow-${rotundDef.rarity.toLowerCase()}`;
                 card.innerHTML = `
                     <span class="inv-qty">x${quantity.toLocaleString()}</span>
                     <img class="${mutClass}" src="images/${rotundDef.file}" onerror="this.src='data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'24\' height=\'24\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'%23333\' stroke-width=\'2\'><circle cx=\'12\' cy=\'12\' r=\'10\'/></svg>'">
-                    <div class="inv-name" style="color: var(--${rotundDef.rarity.toLowerCase()})">${mutNamePrefix}${rotundDef.name}</div>
+                    <div class="inv-name" style="color: var(--${rotundDef.rarity.toLowerCase()})">${rotundDef.name}</div>
                 `;
                 this.grid.appendChild(card);
             }
@@ -654,10 +661,15 @@ const UIManager = {
         const statChance = document.getElementById("stat-computed-chance");
 
         const mutData = MUTATIONS[mutStr.toUpperCase()];
-        const mutNamePrefix = mutStr !== 'none' ? `${mutData.name} ` : '';
 
-        title.innerText = `${mutNamePrefix}${item.name}`;
-        rarityBadge.innerText = item.rarity;
+        title.innerText = item.name;
+        
+        let dynamicRarityHTML = item.rarity;
+        if (mutStr !== 'none') {
+            dynamicRarityHTML += `<span style="background: ${mutData.color}; color: #fff; text-shadow: 0 1px 2px rgba(0,0,0,0.8); padding: 0.25rem 0.65rem; border-radius: 50px; margin-left: 6px; font-size: 0.58rem; font-weight: 800;">${mutStr.toUpperCase()}</span>`;
+        }
+        
+        rarityBadge.innerHTML = dynamicRarityHTML;
         rarityBadge.style.backgroundColor = `var(--${item.rarity.toLowerCase()})`;
         
         const premiumCardElement = document.querySelector(".premium-showcase-card");
@@ -675,10 +687,10 @@ const UIManager = {
         const totalTimesRolled = Player.lifetimeStats[exactKey] || 0;
         statRolled.innerText = totalTimesRolled.toLocaleString();
         
-        // Apply the same scientific notation logic to the detailed modal view
         statChance.innerText = computedChance < 0.0001 
             ? `${computedChance.toExponential(2)}%` 
             : `${computedChance.toFixed(4)}%`;
+            
         this.indexCardModal.classList.remove("hidden-modal");
     },
     closeIndexCardModal() {

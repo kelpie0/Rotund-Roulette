@@ -281,10 +281,10 @@ button:disabled { background: #161619 !important; color: #4b4b50 !important; cur
     100% { filter: drop-shadow(0 0 15px red) hue-rotate(360deg) saturate(2); }
 }
 
-/* Badge for Inventory Card to explicitly label the mutation */
 .mutation-badge {
-    position: absolute; bottom: 4px; left: 50%; transform: translateX(-50%);
+    position: absolute; top: 4px; left: 4px; transform: none;
     font-size: 0.45rem; font-weight: 900; padding: 2px 4px; border-radius: 4px;
-    color: #fff; text-transform: uppercase; white-space: nowrap;
+    color: #fff; text-shadow: 0px 1px 2px rgba(0,0,0,0.8); 
+    text-transform: uppercase; white-space: nowrap;
     background: rgba(0,0,0,0.7); box-shadow: 0 0 5px rgba(0,0,0,0.8);
 }
