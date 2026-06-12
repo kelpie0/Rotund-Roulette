@@ -340,16 +340,17 @@ function finalizeSpin(winners) {
             ? `<span class="badge" style="background: ${MUTATIONS[winner.mutation.toUpperCase()].color}; text-shadow: 0 1px 2px rgba(0,0,0,0.8); margin-left: 4px;">${winner.mutation.toUpperCase()}</span>` 
             : '';
 
+        // Added flex properties to keep everything centered and aligned
         card.innerHTML = `
             <img class="${mutClass}" src="images/${winner.file}" onerror="this.src='data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'64\' height=\'64\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'%23333\' stroke-width=\'1.5\'><circle cx=\'12\' cy=\'12\' r=\'10\'/></svg>'">
-            <div style="display: flex; justify-content: center; margin-bottom: 0.5rem; align-items: center;">
+            <div style="display: flex; justify-content: center; align-items: center; margin-bottom: 0.5rem;">
                 <span class="badge" style="background-color: var(--${winner.rarity.toLowerCase()}); margin-bottom: 0;">${winner.rarity}</span>
                 ${mutBadge}
             </div>
-            <h2>${winner.name}</h2>
-            <div class="result-coin-row">
-                <span>+${scaledValue.toLocaleString()}</span>
-                <img src="images/rotundcoin.png" class="coin-icon" onerror="this.style.display='none'">
+            <h2 style="margin-bottom: 0.5rem;">${winner.name}</h2>
+            <div class="result-coin-row" style="display: flex; justify-content: center; align-items: center; gap: 5px;">
+                <span style="font-weight: bold;">+${scaledValue.toLocaleString()}</span>
+                <img src="images/rotundcoin.png" class="coin-icon" onerror="this.style.display='none'" style="width: 20px; height: 20px;">
             </div>
         `;
         resultsWrapper.appendChild(card);
@@ -359,6 +360,7 @@ function finalizeSpin(winners) {
     syncHUD();
     resultDisplay.classList.remove("hidden");
     
+    // ... rest of the function (flash effects and audio)
     if (highestRarity === "LEGENDARY") document.body.classList.add("flash-yellow");
     if (highestRarity === "MYTHIC") document.body.classList.add("flash-purple");
     if (highestRarity === "ANGELIC") document.body.classList.add("flash-blue");

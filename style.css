@@ -106,10 +106,19 @@ header h1 { font-size: 1.4rem; font-weight: 900; letter-spacing: 0.2em; margin-b
 #results-wrapper { display: flex; justify-content: center; gap: 1.25rem; flex-wrap: wrap; }
 .result-card { display: flex; flex-direction: column; align-items: center; min-width: 100px; position: relative; }
 .result-card img { max-height: 75px; object-fit: contain; margin-bottom: 0.75rem; }
-.badge { display: inline-block; padding: 0.25rem 0.65rem; font-size: 0.58rem; font-weight: 800; border-radius: 50px; margin-bottom: 0.5rem; color: #fff; letter-spacing: 0.05em; }
-.result-card h2 { font-size: 0.9rem; font-weight: 800; text-align: center; }
+.badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 0.6rem;
+    font-weight: 800;
+    color: white;
+}
 
-.result-coin-row { display: inline-flex; align-items: center; justify-content: center; gap: 4px; font-size: 0.72rem; color: var(--text-muted); margin-top: 6px; line-height: 1; }
+.result-coin-row {
+    margin-top: 0.5rem;
+}
 .result-coin-row span { display: inline-block; line-height: 1; }
 
 .controls-row { display: flex; gap: 12px; width: 100%; }
