@@ -31,7 +31,10 @@ const ROTUNDS = [
     
     // SECRET
     { id: "r15", name: "Dapper Rotund", file: "dapperrotund.png", rarity: "SECRET", weight: 0.01, value: 75000 },
-    { id: "r11", name: "32 Bit Rotund", file: "32bitrotund.png", rarity: "SECRET", weight: 0.05, value: 25000 }
+    { id: "r11", name: "32 Bit Rotund", file: "32bitrotund.png", rarity: "SECRET", weight: 0.05, value: 25000 },
+
+    // ANGELIC
+    { id: "r20", name: "Rebirth Rotund", file: "rebirthrotund.png", rarity: "ANGELIC", weight: 0.0005, value: 5000000 }
 ];
 
 // Progressive Purchase Configurations 
@@ -44,6 +47,7 @@ const UPGRADE_DATA = {
 
 let Player = {
     coins: 0,
+    rebirths: 0,
     inventory: {},
     upgrades: { quickRoll: 0, doubleRoll: 0, luck: 0, autoRoll: 0 },
     autoRollActive: false
@@ -55,10 +59,11 @@ let awayStartTime = null; // Millisecond marker timestamp for tab out calculatio
 
 // LocalStorage Engine Wrapper
 const Storage = {
-    saveKey: "RotundRoulette_SaveState_v2",
+    saveKey: "RotundRoulette_SaveState_v3",
     save() {
         const payload = {
             coins: Player.coins,
+            rebirths: Player.rebirths,
             inventory: Player.inventory,
             upgrades: Player.upgrades
         };
@@ -70,6 +75,7 @@ const Storage = {
         try {
             const parsed = JSON.parse(raw);
             if (typeof parsed.coins === "number") Player.coins = parsed.coins;
+            if (typeof parsed.rebirths === "number") Player.rebirths = parsed.rebirths;
             if (parsed.inventory) Player.inventory = parsed.inventory;
             if (parsed.upgrades) Player.upgrades = { ...Player.upgrades, ...parsed.upgrades };
         } catch (e) {
@@ -94,11 +100,12 @@ const AudioFX = {
     win(rarity) {
         this.init();
         let now = this.ctx.currentTime;
-        if (rarity === "SECRET") {
+        if (rarity === "SECRET" || rarity === "ANGELIC") {
             let osc = this.ctx.createOscillator(), gain = this.ctx.createGain();
-            osc.type = "sawtooth"; osc.connect(gain); gain.connect(this.ctx.destination);
-            osc.frequency.setValueAtTime(55, now);
-            osc.frequency.linearRampToValueAtTime(110, now + 2.5);
+            osc.type = rarity === "ANGELIC" ? "sine" : "sawtooth"; 
+            osc.connect(gain); gain.connect(this.ctx.destination);
+            osc.frequency.setValueAtTime(rarity === "ANGELIC" ? 440 : 55, now);
+            osc.frequency.linearRampToValueAtTime(rarity === "ANGELIC" ? 880 : 110, now + 2.5);
             gain.gain.setValueAtTime(0.2, now);
             gain.gain.exponentialRampToValueAtTime(0.00001, now + 3);
             osc.start(); osc.stop(now + 3);
@@ -116,6 +123,17 @@ const AudioFX = {
             gain.gain.exponentialRampToValueAtTime(0.00001, now + (idx * 0.06) + 0.4);
             osc.start(now + (idx * 0.06)); osc.stop(now + (idx * 0.06) + 0.4);
         });
+    },
+    rebirthBoom() {
+        this.init();
+        let now = this.ctx.currentTime;
+        let osc = this.ctx.createOscillator(), gain = this.ctx.createGain();
+        osc.type = "triangle"; osc.connect(gain); gain.connect(this.ctx.destination);
+        osc.frequency.setValueAtTime(120, now);
+        osc.frequency.exponentialRampToValueAtTime(30, now + 1.5);
+        gain.gain.setValueAtTime(0.4, now);
+        gain.gain.exponentialRampToValueAtTime(0.00001, now + 2.0);
+        osc.start(); osc.stop(now + 2.0);
     }
 };
 
@@ -149,6 +167,12 @@ const resultsWrapper = document.getElementById("results-wrapper");
 
 const ITEM_WIDTH = 111; 
 const TARGET_INDEX = 35;
+
+function syncHUD() {
+    document.getElementById("coin-balance").innerText = Player.coins.toLocaleString();
+    document.getElementById("rebirth-balance").innerText = Player.rebirths.toLocaleString();
+    document.getElementById("multiplier-value").innerText = `${(1 + Player.rebirths)}x`;
+}
 
 function syncRouletteViewports() {
     stackContainer.innerHTML = "";
@@ -251,9 +275,9 @@ function spin() {
 }
 
 function processSpinResults(winners) {
-    let secretItem = winners.find(w => w.rarity === "SECRET");
-    if (secretItem) {
-        Cinematics.triggerSecret(secretItem, winners);
+    let specialItem = winners.find(w => ["SECRET", "ANGELIC"].includes(w.rarity));
+    if (specialItem) {
+        Cinematics.triggerSecret(specialItem, winners);
     } else {
         finalizeSpin(winners);
     }
@@ -262,10 +286,12 @@ function processSpinResults(winners) {
 function finalizeSpin(winners) {
     resultsWrapper.innerHTML = "";
     let highestRarity = "COMMON";
+    const multiplier = 1 + Player.rebirths;
 
     winners.forEach(winner => {
         Player.inventory[winner.id] = (Player.inventory[winner.id] || 0) + 1;
-        Player.coins += winner.value;
+        const scaledValue = winner.value * multiplier;
+        Player.coins += scaledValue;
 
         const card = document.createElement("div");
         card.className = `result-card glow-${winner.rarity.toLowerCase()}`;
@@ -274,7 +300,7 @@ function finalizeSpin(winners) {
             <span class="badge" style="background-color: var(--${winner.rarity.toLowerCase()})">${winner.rarity}</span>
             <h2>${winner.name}</h2>
             <div class="result-coin-row">
-                <span>+${winner.value}</span>
+                <span>+${scaledValue.toLocaleString()}</span>
                 <img src="images/rotundcoin.png" class="coin-icon" onerror="this.style.display='none'">
             </div>
         `;
@@ -282,15 +308,17 @@ function finalizeSpin(winners) {
         highestRarity = winner.rarity;
     });
 
-    document.getElementById("coin-balance").innerText = Player.coins.toLocaleString();
+    syncHUD();
     resultDisplay.classList.remove("hidden");
     
     if (highestRarity === "LEGENDARY") document.body.classList.add("flash-yellow");
     if (highestRarity === "MYTHIC") document.body.classList.add("flash-purple");
+    if (highestRarity === "ANGELIC") document.body.classList.add("flash-blue");
     setTimeout(() => { document.body.className = ""; }, 500);
 
     AudioFX.win(highestRarity);
     Menu.updateInventory();
+    Shop.checkRebirthAvailability();
     
     Storage.save(); 
 
@@ -309,20 +337,79 @@ const Cinematics = {
     triggerSecret(secretItem, fullWinnersList) {
         this.cachedWinners = fullWinnersList;
         document.body.classList.add("shake-matrix");
-        AudioFX.win("SECRET");
+        AudioFX.win(secretItem.rarity);
 
         setTimeout(() => {
             document.body.classList.remove("shake-matrix");
             const stage = document.getElementById("secret-stage");
+            const alertText = secretItem.rarity === "ANGELIC" ? "👼 ANGELIC ACQUISITION 👼" : "🚨 SECRET ACQUISITION 🚨";
+            document.querySelector(".secret-alert").innerText = alertText;
             document.getElementById("secret-epicenter-img").src = `images/${secretItem.file}`;
             document.getElementById("secret-epicenter-name").innerText = secretItem.name;
-            document.getElementById("secret-epicenter-name").style.color = "var(--secret)";
+            document.getElementById("secret-epicenter-name").style.color = `var(--${secretItem.rarity.toLowerCase()})`;
             stage.classList.remove("hidden-stage");
         }, 600);
     },
     dismissSecret() {
         document.getElementById("secret-stage").classList.add("hidden-stage");
         finalizeSpin(this.cachedWinners);
+    },
+    executeRebirthSequence() {
+        const stage = document.getElementById("rebirth-cinematic-stage");
+        const counter = document.getElementById("rebirth-odometer-counter");
+        
+        // Setup initial view context
+        counter.innerText = Player.rebirths;
+        stage.classList.remove("hidden-stage");
+        document.body.classList.add("shake-matrix");
+        AudioFX.rebirthBoom();
+
+        // Roll odometer upward state changes
+        setTimeout(() => {
+            let startVal = Player.rebirths;
+            Player.rebirths++;
+            
+            // Hard Wipe Progress States
+            Player.coins = 0;
+            Player.inventory = {};
+            Object.keys(Player.upgrades).forEach(key => Player.upgrades[key] = 0);
+            
+            // Handle graphical ticks
+            counter.classList.add("odometer-tick");
+            setTimeout(() => {
+                counter.innerText = Player.rebirths;
+                counter.classList.remove("odometer-tick");
+                document.body.classList.remove("shake-matrix");
+            }, 300);
+
+        }, 1500);
+
+        // Soft Outro Fading Systems
+        setTimeout(() => {
+            stage.style.opacity = "0";
+            setTimeout(() => {
+                stage.classList.add("hidden-stage");
+                stage.style.opacity = "1";
+                
+                // Reboot Graphics Matrix Layout Modules
+                syncHUD();
+                syncRouletteViewports();
+                Shop.renderTrackers();
+                Menu.updateInventory();
+                Menu.updateIndex();
+                
+                if(document.getElementById("menu-drawer").classList.contains("hidden-drawer") === false) {
+                    Menu.toggle(); // Clean close drawer context
+                }
+                
+                Storage.save();
+                
+                if (Player.autoRollActive) {
+                    isSpinning = false;
+                    spin();
+                }
+            }, 500);
+        }, 4000);
     }
 };
 
@@ -375,7 +462,7 @@ const Menu = {
             row.className = `index-row glow-${item.rarity.toLowerCase()}`;
             
             const isLuckBoosted = Player.upgrades.luck > 0 && item.rarity !== "COMMON";
-            const percentText = ((item.calcWeight / totalWeight) * 100).toFixed(3);
+            const percentText = ((item.calcWeight / totalWeight) * 100).toFixed(4);
 
             row.innerHTML = `
                 <div class="index-left">
@@ -397,6 +484,27 @@ const Shop = {
     getCost(type, currentTier) {
         const cfg = UPGRADE_DATA[type];
         return Math.floor(cfg.baseCost * Math.pow(cfg.multiplier, currentTier));
+    },
+    checkRebirthAvailability() {
+        let allMaxed = true;
+        Object.keys(UPGRADE_DATA).forEach(type => {
+            if (Player.upgrades[type] < UPGRADE_DATA[type].max) allMaxed = false;
+        });
+
+        const section = document.getElementById("rebirth-shop-section");
+        const btn = document.getElementById("execute-rebirth-btn");
+
+        if (allMaxed) {
+            section.classList.remove("rebirth-locked");
+            section.classList.add("rebirth-available-pulse");
+            btn.disabled = false;
+            btn.innerText = "ASCEND NOW";
+        } else {
+            section.classList.add("rebirth-locked");
+            section.classList.remove("rebirth-available-pulse");
+            btn.disabled = true;
+            btn.innerText = "REQUIRES ALL MAX UPGRADES";
+        }
     },
     renderTrackers() {
         Object.keys(UPGRADE_DATA).forEach(type => {
@@ -423,6 +531,7 @@ const Shop = {
                 btn.disabled = false;
             }
         });
+        this.checkRebirthAvailability();
     },
     buy(type) {
         const current = Player.upgrades[type];
@@ -434,7 +543,7 @@ const Shop = {
             Player.coins -= cost;
             Player.upgrades[type]++;
             
-            document.getElementById("coin-balance").innerText = Player.coins.toLocaleString();
+            syncHUD();
             this.renderTrackers();
 
             if (type === "doubleRoll") {
@@ -547,26 +656,29 @@ document.addEventListener("visibilitychange", () => {
                 // Data tracking object
                 let gains = { coins: 0, items: {} };
                 const safeMaxLimit = Math.min(calculatedRolls, 50000); // Safety buffer block
+                const multiplier = 1 + Player.rebirths;
 
                 // Run fast-forward matrix calculations
                 for (let i = 0; i < safeMaxLimit; i++) {
                     const totalTracks = 1 + Player.upgrades.doubleRoll;
                     for (let t = 0; t < totalTracks; t++) {
                         const winner = getRandomRotund();
+                        const scaledValue = winner.value * multiplier;
                         
                         // Apply to live state
                         Player.inventory[winner.id] = (Player.inventory[winner.id] || 0) + 1;
-                        Player.coins += winner.value;
+                        Player.coins += scaledValue;
                         
                         // Track for modal display
-                        gains.coins += winner.value;
+                        gains.coins += scaledValue;
                         gains.items[winner.id] = (gains.items[winner.id] || 0) + 1;
                     }
                 }
 
                 // Update HUD and Save
-                document.getElementById("coin-balance").innerText = Player.coins.toLocaleString();
+                syncHUD();
                 Menu.updateInventory();
+                Shop.checkRebirthAvailability();
                 Storage.save();
 
                 // Trigger New Missed Rewards Modal
@@ -586,7 +698,7 @@ document.addEventListener("visibilitychange", () => {
 
 // Boot Setup Initialization
 Storage.load(); 
-document.getElementById("coin-balance").innerText = Player.coins.toLocaleString();
+syncHUD();
 
 if (Player.upgrades.autoRoll > 0) {
     autoBtn.classList.remove("hidden-upgrade");
