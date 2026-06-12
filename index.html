@@ -139,8 +139,7 @@
             <h2 class="modal-title">MISSED REWARDS</h2>
             <p class="modal-subtitle" id="offline-summary-text"></p>
             
-            <div id="offline-item-grid" class="grid-display offline-grid-tweak">
-                </div>
+            <div id="offline-item-grid" class="grid-display offline-grid-tweak"></div>
             
             <div class="modal-footer">
                 <div class="coin-total-row result-coin-row">
@@ -152,6 +151,51 @@
             </div>
         </div>
     </div>
+
+    <div id="index-card-modal" class="modal-overlay hidden-modal">
+        <div class="modal-content" style="max-width: 380px; padding: 2rem 1.5rem;">
+            
+            <div class="premium-showcase-card">
+                <h2 id="idx-card-title">Rotund Name</h2>
+                <span id="idx-card-rarity" class="badge">RARITY</span>
+                
+                <div class="showcase-image-wrapper">
+                    <img id="idx-card-img" src="" alt="Rotund Image">
+                </div>
+                
+                <div class="showcase-stats-panel">
+                    <div class="stat-row-line">
+                        <span class="lbl">Coin Value</span>
+                        <span class="val" id="stat-payout-value">0</span>
+                    </div>
+                    <div class="stat-row-line">
+                        <span class="lbl">Lifetime Rolled</span>
+                        <span class="val" id="stat-lifetime-rolled">0</span>
+                    </div>
+                    <div class="stat-row-line">
+                        <span class="lbl">Current Chance</span>
+                        <span class="val" id="stat-computed-chance">0%</span>
+                    </div>
+                </div>
+            </div>
+
+            <button class="modal-close-generic-btn" onclick="UIManager.closeIndexCardModal()">CLOSE CONTAINER</button>
+        </div>
+    </div>
+
+<div id="tab-index" class="tab-content hidden-tab">
+    <div class="sort-bar">
+        <select onchange="Menu.updateIndex(this.value)">
+            <option value="all">All Mutations</option>
+            <option value="none">Normal</option>
+            <option value="gold">Gold</option>
+            <option value="diamond">Diamond</option>
+            <option value="rainbow">Rainbow</option>
+            <option value="void">Void</option>
+        </select>
+    </div>
+    <div id="index-list" class="flex-list"></div>
+</div>
 
     <script src="script.js"></script>
 </body>
