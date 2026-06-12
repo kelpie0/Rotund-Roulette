@@ -50,6 +50,8 @@ let Player = {
 };
 
 let isSpinning = false; // Core system intercept lock to completely prevent layout freeze states
+let animationFrameId = null; // Background loop crash protector pointer
+let awayStartTime = null; // Millisecond marker timestamp for tab out calculations
 
 // LocalStorage Engine Wrapper
 const Storage = {
@@ -229,7 +231,7 @@ function spin() {
         
         for (let i = 0; i < totalTracks; i++) {
             const currentX = -(targetTranslations[i] * easeOut);
-            trackElements[i].style.transform = `translateX(${currentX}px)`;
+            if (trackElements[i]) trackElements[i].style.transform = `translateX(${currentX}px)`;
         }
 
         const primaryX = -(targetTranslations[0] * easeOut);
@@ -240,12 +242,12 @@ function spin() {
         }
 
         if (progress < 1) {
-            requestAnimationFrame(animate);
+            animationFrameId = requestAnimationFrame(animate);
         } else {
             processSpinResults(winners);
         }
     }
-    requestAnimationFrame(animate);
+    animationFrameId = requestAnimationFrame(animate);
 }
 
 function processSpinResults(winners) {
@@ -290,7 +292,7 @@ function finalizeSpin(winners) {
     AudioFX.win(highestRarity);
     Menu.updateInventory();
     
-    Storage.save(); // Save engine step
+    Storage.save(); 
 
     isSpinning = false; 
 
@@ -445,14 +447,14 @@ const Shop = {
                 autoBtn.classList.remove("hidden-upgrade");
             }
             
-            Storage.save(); // Save engine step
+            Storage.save(); 
         } else {
             alert("Insufficient RotundCoins!");
         }
     }
 };
 
-// 7. Core Native Global Event Hook Wireframes
+// 7. Core Native Global Event Hook Wireframes & Page Visibility Interceptor
 autoBtn.addEventListener("click", () => {
     Player.autoRollActive = !Player.autoRollActive;
     if (Player.autoRollActive) {
@@ -470,8 +472,74 @@ autoBtn.addEventListener("click", () => {
 
 rollBtn.addEventListener("click", spin);
 
+// Page Visibility API - Simulates background rolls dynamically
+document.addEventListener("visibilitychange", () => {
+    if (document.hidden) {
+        if (Player.autoRollActive) {
+            awayStartTime = Date.now();
+        }
+    } else {
+        if (awayStartTime && Player.autoRollActive) {
+            const elapsed = Date.now() - awayStartTime;
+            awayStartTime = null;
+
+            // Gather roll processing speed context
+            const intervals = [4200, 2200, 1000, 500, 250];
+            const baseDuration = intervals[Player.upgrades.quickRoll];
+            const fullCycleTime = baseDuration + 1000; // spin run + auto cooldown gap
+
+            const calculatedRolls = Math.floor(elapsed / fullCycleTime);
+
+            if (calculatedRolls > 0) {
+                // Instantly snap and wipe active frozen visual loops
+                if (animationFrameId) cancelAnimationFrame(animationFrameId);
+                isSpinning = false;
+                rollBtn.disabled = false;
+
+                let totalCoinsEarned = 0;
+                let specialFinds = [];
+                const safeMaxLimit = Math.min(calculatedRolls, 50000); // Safety buffer block
+
+                // Run fast-forward matrix calculations
+                for (let i = 0; i < safeMaxLimit; i++) {
+                    const totalTracks = 1 + Player.upgrades.doubleRoll;
+                    for (let t = 0; t < totalTracks; t++) {
+                        const winner = getRandomRotund();
+                        Player.inventory[winner.id] = (Player.inventory[winner.id] || 0) + 1;
+                        Player.coins += winner.value;
+                        totalCoinsEarned += winner.value;
+
+                        if (["MYTHIC", "SECRET", "LEGENDARY"].includes(winner.rarity)) {
+                            specialFinds.push(winner.name);
+                        }
+                    }
+                }
+
+                document.getElementById("coin-balance").innerText = Player.coins.toLocaleString();
+                Menu.updateInventory();
+                Storage.save();
+
+                // Format output readout report
+                let notification = `Welcome back!\n\nWhile you were tabbed out, your auto-roller completed ${calculatedRolls.toLocaleString()} rolls.\n💰 Gained: +${totalCoinsEarned.toLocaleString()} RotundCoins`;
+                if (specialFinds.length > 0) {
+                    const uniqueFinds = [...new Set(specialFinds)];
+                    notification += `\n\n✨ Major Drops: ${uniqueFinds.join(", ")}`;
+                }
+                alert(notification);
+
+                syncRouletteViewports();
+            }
+
+            // Fire standard processing loop back up seamlessly
+            if (Player.autoRollActive && !isSpinning) {
+                spin();
+            }
+        }
+    }
+});
+
 // Boot Setup Initialization
-Storage.load(); // Process file read before rendering view states
+Storage.load(); 
 document.getElementById("coin-balance").innerText = Player.coins.toLocaleString();
 
 if (Player.upgrades.autoRoll > 0) {
