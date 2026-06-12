@@ -454,7 +454,54 @@ const Shop = {
     }
 };
 
-// 7. Core Native Global Event Hook Wireframes & Page Visibility Interceptor
+// 7. Dynamic UI Modal Manager (New Logic Block)
+const UIManager = {
+    modal: document.getElementById("offline-modal"),
+    grid: document.getElementById("offline-item-grid"),
+    summary: document.getElementById("offline-summary-text"),
+    coins: document.getElementById("offline-coins-gained"),
+
+    showOfflineModal(rollsMissed, gains) {
+        // Clear previous data
+        this.grid.innerHTML = "";
+        
+        // Update labels
+        this.summary.innerText = `Your Auto-Roller completed ${rollsMissed.toLocaleString()} sets while you were away.`;
+        this.coins.innerText = `+${gains.coins.toLocaleString()}`;
+
+        // Populate Grid (Formatted like Inventory)
+        Object.keys(gains.items).forEach(itemId => {
+            const rotundDef = ROTUNDS.find(r => r.id === itemId);
+            const quantity = gains.items[itemId];
+
+            if (rotundDef) {
+                const card = document.createElement("div");
+                // Reuse existing inventory classes for consistency
+                card.className = `inv-card glow-${rotundDef.rarity.toLowerCase()}`;
+                card.innerHTML = `
+                    <span class="inv-qty">x${quantity.toLocaleString()}</span>
+                    <img src="images/${rotundDef.file}" onerror="this.src='data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'24\' height=\'24\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'%23333\' stroke-width=\'2\'><circle cx=\'12\' cy=\'12\' r=\'10\'/></svg>'">
+                    <div class="inv-name" style="color: var(--${rotundDef.rarity.toLowerCase()})">${rotundDef.name}</div>
+                `;
+                this.grid.appendChild(card);
+            }
+        });
+
+        // Unhide Modal
+        this.modal.classList.remove("hidden-modal");
+    },
+
+    claimOfflineRewards() {
+        this.modal.classList.add("hidden-modal");
+        
+        // Resume Auto-Rolling Loop if still active
+        if (Player.autoRollActive && !isSpinning) {
+            spin();
+        }
+    }
+};
+
+// 8. Core Native Global Event Hook Wireframes & Page Visibility Interceptor
 autoBtn.addEventListener("click", () => {
     Player.autoRollActive = !Player.autoRollActive;
     if (Player.autoRollActive) {
@@ -479,6 +526,7 @@ document.addEventListener("visibilitychange", () => {
             awayStartTime = Date.now();
         }
     } else {
+        // Tab became active again
         if (awayStartTime && Player.autoRollActive) {
             const elapsed = Date.now() - awayStartTime;
             awayStartTime = null;
@@ -496,8 +544,8 @@ document.addEventListener("visibilitychange", () => {
                 isSpinning = false;
                 rollBtn.disabled = false;
 
-                let totalCoinsEarned = 0;
-                let specialFinds = [];
+                // Data tracking object
+                let gains = { coins: 0, items: {} };
                 const safeMaxLimit = Math.min(calculatedRolls, 50000); // Safety buffer block
 
                 // Run fast-forward matrix calculations
@@ -505,34 +553,32 @@ document.addEventListener("visibilitychange", () => {
                     const totalTracks = 1 + Player.upgrades.doubleRoll;
                     for (let t = 0; t < totalTracks; t++) {
                         const winner = getRandomRotund();
+                        
+                        // Apply to live state
                         Player.inventory[winner.id] = (Player.inventory[winner.id] || 0) + 1;
                         Player.coins += winner.value;
-                        totalCoinsEarned += winner.value;
-
-                        if (["MYTHIC", "SECRET", "LEGENDARY"].includes(winner.rarity)) {
-                            specialFinds.push(winner.name);
-                        }
+                        
+                        // Track for modal display
+                        gains.coins += winner.value;
+                        gains.items[winner.id] = (gains.items[winner.id] || 0) + 1;
                     }
                 }
 
+                // Update HUD and Save
                 document.getElementById("coin-balance").innerText = Player.coins.toLocaleString();
                 Menu.updateInventory();
                 Storage.save();
 
-                // Format output readout report
-                let notification = `Welcome back!\n\nWhile you were tabbed out, your auto-roller completed ${calculatedRolls.toLocaleString()} rolls.\n💰 Gained: +${totalCoinsEarned.toLocaleString()} RotundCoins`;
-                if (specialFinds.length > 0) {
-                    const uniqueFinds = [...new Set(specialFinds)];
-                    notification += `\n\n✨ Major Drops: ${uniqueFinds.join(", ")}`;
-                }
-                alert(notification);
-
+                // Trigger New Missed Rewards Modal
+                UIManager.showOfflineModal(calculatedRolls, gains);
+                
+                // Reset visual tracks state
                 syncRouletteViewports();
-            }
-
-            // Fire standard processing loop back up seamlessly
-            if (Player.autoRollActive && !isSpinning) {
-                spin();
+            } else {
+                // If they tabbed back in before a full cycle completed, just resume
+                if (Player.autoRollActive && !isSpinning) {
+                    spin();
+                }
             }
         }
     }

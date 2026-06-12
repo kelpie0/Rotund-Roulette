@@ -1,10 +1,12 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <link rel="icon" type="image/png" href="images/favicon.png">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Rotund Roulette</title>
+    
+    <link rel="icon" type="image/png" href="images/favicon.png">
+    
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -102,6 +104,25 @@
 
             <div id="tab-index" class="tab-content hidden-tab">
                 <div id="index-list" class="flex-list"></div>
+            </div>
+        </div>
+    </div>
+
+    <div id="offline-modal" class="modal-overlay hidden-modal">
+        <div class="modal-content">
+            <h2 class="modal-title">MISSED REWARDS</h2>
+            <p class="modal-subtitle" id="offline-summary-text"></p>
+            
+            <div id="offline-item-grid" class="grid-display offline-grid-tweak">
+                </div>
+            
+            <div class="modal-footer">
+                <div class="coin-total-row result-coin-row">
+                    <span class="total-label">Gained:</span>
+                    <span id="offline-coins-gained" class="total-amount"></span>
+                    <img src="images/rotundcoin.png" class="coin-icon" alt="Coins">
+                </div>
+                <button id="offline-claim-btn" onclick="UIManager.claimOfflineRewards()">CLAIM</button>
             </div>
         </div>
     </div>
