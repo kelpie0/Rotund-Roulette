@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rotund Roulette</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <div id="secret-stage" class="hidden-stage">
+        <div id="secret-flashback"></div>
+        <div id="secret-content">
+            <p class="secret-alert">🚨 SECRET ACQUISITION 🚨</p>
+            <img id="secret-epicenter-img" src="" alt="Secret Rotund">
+            <h1 id="secret-epicenter-name">UNKNOWN</h1>
+            <button id="secret-dismiss" onclick="Cinematics.dismissSecret()">COLLECT</button>
+        </div>
+    </div>
+
+    <div id="top-bar">
+        <div class="coin-display">
+            <img src="images/rotundcoin.png" class="coin-icon" onerror="this.style.display='none'"> 
+            <span id="coin-balance">0</span>
+        </div>
+        <button id="menu-toggle-btn" onclick="Menu.toggle()" aria-label="Open Menu">
+            <span></span>
+            <span></span>
+            <span></span>
+        </button>
+    </div>
+
+    <main id="game-container">
+        <header>
+            <h1>ROTUND ROULETTE</h1>
+            <p class="subtitle">Test your luck to pull rare rotunds</p>
+        </header>
+
+        <div id="roulette-stack-container"></div>
+
+        <div id="result-display" class="hidden">
+            <div id="results-wrapper"></div>
+        </div>
+
+        <div class="controls-row">
+            <button id="roll-button">SPIN</button>
+            <button id="auto-roll-btn" class="hidden-upgrade">AUTO: OFF</button>
+        </div>
+    </main>
+
+    <div id="menu-drawer" class="drawer hidden-drawer">
+        <div class="shine-overlay"></div>
+        <div class="drawer-header">
+            <div class="drawer-tabs">
+                <button class="tab-btn active" onclick="Menu.switchTab('shop')">SHOP</button>
+                <button class="tab-btn" onclick="Menu.switchTab('inventory')">INVENTORY</button>
+                <button class="tab-btn" onclick="Menu.switchTab('index')">INDEX</button>
+            </div>
+            <button class="close-btn" onclick="Menu.toggle()">×</button>
+        </div>
+        
+        <div class="drawer-body">
+            <div id="tab-shop" class="tab-content">
+                <div class="shop-item">
+                    <div>
+                        <h3>Quick Rolls</h3>
+                        <p class="item-desc">Reduces roll duration down to 0.25s.</p>
+                        <div class="progress-container" id="track-quickRoll"></div>
+                    </div>
+                    <button id="buy-quickRoll" onclick="Shop.buy('quickRoll')"></button>
+                </div>
+                <div class="shop-item">
+                    <div>
+                        <h3>Extra Roll</h3>
+                        <p class="item-desc">Roll up to 4 items simultaneously per spin.</p>
+                        <div class="progress-container" id="track-doubleRoll"></div>
+                    </div>
+                    <button id="buy-doubleRoll" onclick="Shop.buy('doubleRoll')"></button>
+                </div>
+                <div class="shop-item">
+                    <div>
+                        <h3>Sublime Luck</h3>
+                        <p class="item-desc">Boosts non-common pull rates by +10% per tier.</p>
+                        <div class="progress-container" id="track-luck"></div>
+                    </div>
+                    <button id="buy-luck" onclick="Shop.buy('luck')"></button>
+                </div>
+                <div class="shop-item">
+                    <div>
+                        <h3>Auto Roll Engine</h3>
+                        <p class="item-desc">Unlocks background rolling automation loops.</p>
+                        <div class="progress-container" id="track-autoRoll"></div>
+                    </div>
+                    <button id="buy-autoRoll" onclick="Shop.buy('autoRoll')"></button>
+                </div>
+            </div>
+
+            <div id="tab-inventory" class="tab-content hidden-tab">
+                <div id="inventory-grid" class="grid-display"></div>
+            </div>
+
+            <div id="tab-index" class="tab-content hidden-tab">
+                <div id="index-list" class="flex-list"></div>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
