@@ -509,7 +509,9 @@ const Menu = {
                 
                 const baseChance = (item.calcWeight / totalWeight);
                 const complexChanceValue = (baseChance * mutData.chance) * 100;
-                const percentText = complexChanceValue.toFixed(6);
+                const percentText = complexChanceValue < 0.0001 
+                    ? complexChanceValue.toExponential(2) 
+                    : complexChanceValue.toFixed(4);
 
                 const mutClass = mutStr !== 'none' ? `mutation-${mutStr}` : '';
                 const mutNamePrefix = mutStr !== 'none' ? `${mutData.name} ` : '';
@@ -673,7 +675,10 @@ const UIManager = {
         const totalTimesRolled = Player.lifetimeStats[exactKey] || 0;
         statRolled.innerText = totalTimesRolled.toLocaleString();
         
-        statChance.innerText = `${computedChance.toFixed(6)}%`;
+        // Apply the same scientific notation logic to the detailed modal view
+        statChance.innerText = computedChance < 0.0001 
+            ? `${computedChance.toExponential(2)}%` 
+            : `${computedChance.toFixed(4)}%`;
         this.indexCardModal.classList.remove("hidden-modal");
     },
     closeIndexCardModal() {
